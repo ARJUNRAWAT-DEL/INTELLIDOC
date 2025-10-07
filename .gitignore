@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+*.py[cod]
+.venv/
+venv/
+ENV/
+*.egg-info/
+
+# Environment variables (IMPORTANT: Don't push API keys!)
+.env
+*.env
+.env.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+ai_docs.db
+
+# Logs
+*.log
+app.log
+
+# Node
+node_modules/
+dist/
+npm-debug.log*
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploaded files
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Cache
+.cache/
+transformers_cache/

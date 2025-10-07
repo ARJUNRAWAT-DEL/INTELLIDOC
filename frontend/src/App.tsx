@@ -1,0 +1,446 @@
+import React, { useState, useEffect } from "react";
+import SearchBar from "./components/SearchBar";
+import ModernSearchResults from "./components/ModernSearchResults";
+import StunningUpload from "./components/StunningUpload";
+import DocumentLibrary from "./components/DocumentLibrary";
+import UploadProgress from "./components/UploadProgress";
+import FloatingParticles from "./components/FloatingParticles";
+import { ApiService } from "./services/api";
+
+// Local type definitions to avoid import issues
+interface Source {
+  doc_id: number;
+  doc_title: string;
+}
+
+interface DualAnswerInfo {
+  local_answer: string;
+  groq_answer: string;
+  selected_source: string;
+  selection_reason: string;
+  dual_answers_enabled: boolean;
+}
+
+interface SearchResponse {
+  query: string;
+  answer: string;
+  sources: Source[];
+  processing_time?: number;
+  dual_answers?: DualAnswerInfo;
+}
+
+interface DocumentSummary {
+  id: number;
+  title: string;
+  summary: string | null;
+  created_at: string | null;
+  file_size: number | null;
+  file_type: string | null;
+  chunks_count: number | null;
+}
+
+interface Metrics {
+  documents_count: number;
+  chunks_count: number;
+  avg_chunks_per_doc: number;
+  total_file_size: number;
+  model_info: Record<string, any>;
+}
+
+function App() {
+  const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [uploadTaskId, setUploadTaskId] = useState<string | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentSummary | null>(null);
+  const [refreshDocuments, setRefreshDocuments] = useState(0);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [activeTab, setActiveTab] = useState<"upload" | "library" | "metrics">("upload");
+
+  // Load metrics on startup
+  useEffect(() => {
+    loadMetrics();
+  }, []);
+
+  const loadMetrics = async () => {
+    try {
+      const metricsData = await ApiService.getMetrics();
+      setMetrics(metricsData);
+    } catch (err) {
+      console.error("Failed to load metrics:", err);
+    }
+  };
+
+  // ---------------- Search ----------------
+  const handleSearch = async (query: string) => {
+    setSearchLoading(true);
+    setSearchError(null);
+    setSearchResponse(null);
+
+    try {
+      const response = await ApiService.search(
+        query, 
+        10, 
+        0, 
+        selectedDocument?.id
+      );
+      setSearchResponse(response);
+    } catch (err: any) {
+      setSearchError(err.message);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // ---------------- Upload Handlers ----------------
+  const handleUploadStart = (taskId: string) => {
+    setUploadTaskId(taskId);
+  };
+
+  const handleUploadComplete = (result: any) => {
+    setUploadTaskId(null);
+    setRefreshDocuments(prev => prev + 1);
+    loadMetrics();
+    alert(`Document "${result.title}" uploaded successfully!`);
+  };
+
+  const handleUploadError = (error: string) => {
+    setUploadTaskId(null);
+    alert("Upload failed: " + error);
+  };
+
+  return (
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Animated Floating Particles Background */}
+      <FloatingParticles />
+      
+      {/* Dynamic Background Layers */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Workspace Background Image */}
+        <div 
+          className="absolute inset-0 bg-contain bg-center bg-no-repeat animate-workspace-breathe"
+          style={{
+            backgroundImage: `url("https://images.pexels.com/photos/5082578/pexels-photo-5082578.jpeg?_gl=1*1mhmvtp*_ga*MTQ1NjI5MDEzNi4xNzU2MTE3Mzc5*_ga_8JE65Q40S6*czE3NTYxODIzODckbzMkZzEkdDE3NTYxODQ5OTQkajIwJGwwJGgw")`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            transform: 'scale(0.8)',
+          }}
+        />
+        
+        {/* Animated Light Sweep Effect */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-light-sweep"></div>
+        
+        {/* Subtle Dark Overlay for Text Readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
+        
+        {/* Organic Floating Shapes with Animation */}
+        <div className="absolute top-20 -left-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/15 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-20 -right-20 w-96 h-96 bg-gradient-to-br from-emerald-400/20 to-cyan-400/15 rounded-full blur-3xl animate-float animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-gradient-to-br from-amber-400/15 to-orange-400/10 rounded-full blur-3xl animate-float animation-delay-4000"></div>
+        
+        {/* Animated Light Rays */}
+        <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-white/20 to-transparent animate-shimmer"></div>
+        <div className="absolute top-0 right-1/3 w-px h-full bg-gradient-to-b from-transparent via-purple-300/20 to-transparent animate-shimmer animation-delay-1000"></div>
+        
+        {/* Moving Particles */}
+        <div className="absolute top-1/4 left-10 w-2 h-2 bg-purple-400/60 rounded-full animate-bounce-gentle"></div>
+        <div className="absolute top-1/3 right-16 w-3 h-3 bg-emerald-400/50 rounded-full animate-bounce-gentle animation-delay-500"></div>
+        <div className="absolute bottom-1/4 left-1/5 w-1.5 h-1.5 bg-cyan-400/60 rounded-full animate-bounce-gentle animation-delay-1000"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-2.5 h-2.5 bg-pink-400/40 rounded-full animate-bounce-gentle animation-delay-1500"></div>
+        
+        {/* Subtle Grid Pattern */}
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: `
+            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px'
+        }}></div>
+        
+        {/* Final Brightness Layer */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/10"></div>
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10 w-full">
+        {/* Spectacular Header */}
+        <header className="px-8 py-8 lg:py-12">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col lg:flex-row items-center justify-between">
+              {/* Stunning Logo */}
+              <div className="flex items-center mb-8 lg:mb-0">
+                <div className="relative mr-6">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-violet-600 via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl animate-pulse">
+                    <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                      <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full animate-bounce shadow-lg"></div>
+                  <div className="absolute -bottom-1 -left-1 w-6 h-6 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full animate-bounce animation-delay-1000 shadow-lg"></div>
+                </div>
+                <div>
+                  <h1 className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                    IntelliDoc AI
+                  </h1>
+                  <p className="text-gray-600 text-lg font-medium">Advanced Document Intelligence Platform</p>
+                </div>
+              </div>
+              
+              {/* System Status */}
+              <div className="flex items-center space-x-6">
+                <div className="bg-white/60 backdrop-blur-xl rounded-2xl px-6 py-4 border border-white/40 shadow-xl">
+                  <div className="flex items-center space-x-3">
+                    <div className="relative">
+                      <div className="w-4 h-4 bg-emerald-400 rounded-full animate-pulse"></div>
+                      <div className="absolute inset-0 w-4 h-4 bg-emerald-400 rounded-full animate-ping"></div>
+                    </div>
+                    <span className="font-semibold text-gray-800">AI System Online</span>
+                  </div>
+                </div>
+                
+                {metrics && (
+                  <div className="hidden md:block bg-white/60 backdrop-blur-xl rounded-2xl px-6 py-4 border border-white/40 shadow-xl">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-gray-900">{metrics.documents_count}</div>
+                      <div className="text-sm text-gray-600">Documents</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <section className="px-8 pb-12">
+          <div className="max-w-7xl mx-auto text-center">
+            <h2 className="text-5xl md:text-7xl font-black text-gray-900 mb-8 leading-tight">
+              Unlock the Power of
+              <br />
+              <span className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
+                Intelligent Search
+              </span>
+            </h2>
+            
+            <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-4xl mx-auto leading-relaxed">
+              Transform any document into an intelligent knowledge base. Upload, search, and discover insights with cutting-edge AI technology.
+            </p>
+            
+            {/* Feature Highlights */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+              {[
+                { 
+                  icon: "🧠", 
+                  title: "Advanced AI", 
+                  desc: "Dual neural networks for superior accuracy",
+                  gradient: "from-purple-500 to-pink-500"
+                },
+                { 
+                  icon: "⚡", 
+                  title: "Lightning Fast", 
+                  desc: "Get answers in milliseconds, not minutes",
+                  gradient: "from-emerald-500 to-cyan-500"
+                },
+                { 
+                  icon: "🎯", 
+                  title: "Precise Results", 
+                  desc: "Contextual understanding meets perfect relevance",
+                  gradient: "from-amber-500 to-orange-500"
+                }
+              ].map((feature, index) => (
+                <div key={index} className="group">
+                  <div className="bg-white/40 backdrop-blur-xl rounded-3xl p-8 border border-white/40 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-500">
+                    <div className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-2xl mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
+                      <span className="text-2xl">{feature.icon}</span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+                    <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Main Dashboard */}
+        <section className="px-8 pb-16">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
+              {/* Left Panel - Upload & Controls */}
+              <div className="space-y-8">
+                {/* Control Tabs */}
+                <div className="bg-white/40 backdrop-blur-xl rounded-3xl border border-white/50 shadow-2xl overflow-hidden">
+                  <div className="flex bg-gradient-to-r from-gray-50/60 to-white/40 p-2">
+                    {[
+                      { key: "upload", label: "Upload", icon: "🚀" },
+                      { key: "library", label: "Library", icon: "📚" },
+                      { key: "metrics", label: "Analytics", icon: "📊" }
+                    ].map((tab) => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key as any)}
+                        className={`flex-1 px-6 py-4 rounded-2xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-3 ${
+                          activeTab === tab.key
+                            ? "bg-white/90 text-gray-900 shadow-xl transform scale-105"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+                        }`}
+                      >
+                        <span className="text-lg">{tab.icon}</span>
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="p-8">
+                    {activeTab === "upload" && (
+                      <StunningUpload
+                        onUploadStart={handleUploadStart}
+                        onUploadComplete={handleUploadComplete}
+                        onUploadError={handleUploadError}
+                        uploadTaskId={uploadTaskId}
+                      />
+                    )}
+
+                    {activeTab === "library" && (
+                      <DocumentLibrary
+                        onDocumentSelect={setSelectedDocument}
+                        refreshTrigger={refreshDocuments}
+                      />
+                    )}
+
+                    {activeTab === "metrics" && metrics && (
+                      <div className="space-y-6">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">
+                          System Analytics
+                        </h3>
+                        <div className="grid grid-cols-2 gap-6">
+                          {[
+                            { label: "Documents", value: metrics.documents_count, icon: "📄", color: "from-blue-500 to-cyan-400" },
+                            { label: "Text Chunks", value: metrics.chunks_count, icon: "🧩", color: "from-purple-500 to-pink-400" },
+                            { label: "Avg/Doc", value: metrics.avg_chunks_per_doc.toFixed(1), icon: "📊", color: "from-emerald-500 to-green-400" },
+                            { label: "Storage", value: `${Math.round(metrics.total_file_size / 1024 / 1024)} MB`, icon: "💾", color: "from-amber-500 to-orange-400" }
+                          ].map((metric, index) => (
+                            <div key={index} className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/40 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+                              <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${metric.color} mb-4 shadow-lg`}>
+                                <span className="text-xl">{metric.icon}</span>
+                              </div>
+                              <div className="text-3xl font-black text-gray-900 mb-1">{metric.value}</div>
+                              <div className="text-sm text-gray-600 font-semibold">{metric.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/40 shadow-lg mt-6">
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-700 font-semibold">AI Processing Device</span>
+                            <span className="font-bold text-gray-900">{metrics.model_info?.device || "Unknown"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Upload Progress */}
+                <UploadProgress
+                  taskId={uploadTaskId}
+                  onComplete={handleUploadComplete}
+                  onError={handleUploadError}
+                />
+              </div>
+
+              {/* Right Panel - Search Interface */}
+              <div className="space-y-8">
+                {/* Search Interface */}
+                <div className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/50 shadow-2xl overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-100/60 via-purple-100/40 to-pink-100/60 p-8 border-b border-white/30">
+                    <div className="flex flex-col lg:flex-row items-center justify-between">
+                      <div className="text-center lg:text-left mb-6 lg:mb-0">
+                        <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 rounded-3xl mb-4 shadow-2xl">
+                          <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <h2 className="text-4xl font-black text-gray-900 mb-3">
+                          Intelligent Search
+                        </h2>
+                        <p className="text-lg text-gray-700">Ask anything and get instant AI-powered answers</p>
+                      </div>
+                      
+                      {selectedDocument && (
+                        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/60 shadow-xl">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-400 rounded-xl flex items-center justify-center">
+                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-600 font-semibold">Focused Search:</p>
+                              <p className="font-bold text-gray-900 truncate">{selectedDocument.title}</p>
+                            </div>
+                            <button
+                              onClick={() => setSelectedDocument(null)}
+                              className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-full"
+                            >
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="p-8">
+                    <SearchBar onSearch={handleSearch} />
+                  </div>
+                </div>
+
+                {/* Search Results */}
+                <div className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/50 shadow-2xl min-h-[600px]">
+                  <div className="p-8 border-b border-white/20">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-violet-600 via-purple-500 to-pink-400 rounded-2xl flex items-center justify-center shadow-xl">
+                        <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-3xl font-black text-gray-900">AI Intelligence Hub</h3>
+                        <p className="text-lg text-gray-700">Powered by advanced neural networks</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-8">
+                    <ModernSearchResults
+                      searchResponse={searchResponse}
+                      loading={searchLoading}
+                      error={searchError}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="px-8 py-12 text-center">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white/20 backdrop-blur-xl rounded-2xl p-8 border border-white/40 shadow-xl">
+              <p className="text-gray-600 text-lg">
+                Powered by cutting-edge AI technology • Built for the future of document intelligence
+              </p>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+export default App;

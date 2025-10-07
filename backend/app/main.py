@@ -1,0 +1,429 @@
+from fastapi import FastAPI, Depends, File, UploadFile, HTTPException, Query, BackgroundTasks, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from sqlalchemy import inspect, text
+import time
+from datetime import datetime
+from typing import List, Optional
+
+# Relative imports for proper module structure
+from . import db, crud, schemas
+from .config import settings
+from .logger import logger
+from .validators import validate_file
+from .background_tasks import process_document_async, generate_task_id, get_task_status, cleanup_old_tasks
+
+# Dual Answer System: Local Models + GROQ via MCP
+USE_DUAL_ANSWERS = getattr(settings, 'use_dual_answers', True)
+USE_GROQ = getattr(settings, 'use_groq', True)
+
+# Import both systems
+from . import ai_utils  # Your existing working models
+from .model_manager_simple import model_manager  # Simplified local models
+from .cache_manager import cache_manager
+from .dual_answer_system import generate_dual_answers
+
+# GROQ MCP client for second opinion
+groq_client = None
+if USE_GROQ:
+    try:
+        from groq import Groq
+        import os
+        groq_api_key = getattr(settings, 'groq_api_key', None) or os.getenv("GROQ_API_KEY")
+        if groq_api_key:
+            groq_client = Groq(api_key=groq_api_key)
+            logger.info("GROQ client initialized for dual answers")
+        else:
+            logger.warning("GROQ_API_KEY not found - running local models only")
+    except ImportError:
+        logger.warning("GROQ package not installed - running local models only")
+
+# Use your existing ai_utils as primary system
+active_ai_utils = ai_utils
+logger.info("Using local models as primary + GROQ for dual answers" if groq_client else "Using local models only")
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="AI Document Search Tool",
+    description="AI-powered document search with semantic understanding",
+    version="1.0.0"
+)
+
+# CORS middleware (accept str or list in settings.allowed_origins)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=(
+        settings.allowed_origins
+        if isinstance(settings.allowed_origins, list)
+        else [settings.allowed_origins]
+    ),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+def get_db():
+    """Database dependency"""
+    db_session = db.SessionLocal()
+    try:
+        yield db_session
+    finally:
+        db_session.close()
+
+# Global exception handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal server error",
+            "detail": str(exc) if settings.log_level == "DEBUG" else "An error occurred"
+        }
+    )
+
+# Startup event
+@app.on_event("startup")
+def startup_event():
+    try:
+        # Create tables if they don't exist
+        from .database_init import create_tables
+        create_tables()
+
+        # Test database connection
+        insp = inspect(db.engine)
+        tables = insp.get_table_names()
+        logger.info(f"Connected to DB. Found tables: {tables}")
+
+        # Initialize your existing local models (primary system)
+        logger.info("Initializing your local AI models...")
+        model_info = model_manager.get_model_info()
+        logger.info(f"Local models initialized on device: {model_info['device']}")
+        
+        # Test GROQ connection if enabled
+        global groq_client
+        if groq_client and USE_GROQ:
+            try:
+                # Test GROQ with a simple call
+                test_response = groq_client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[{"role": "user", "content": "Hello"}],
+                    max_tokens=10
+                )
+                logger.info("GROQ connection verified - dual answers enabled")
+            except Exception as e:
+                logger.warning(f"GROQ test failed, disabling: {e}")
+                groq_client = None
+
+    except Exception as e:
+        logger.error(f"Startup failed: {e}")
+        # Don't crash the server; just log the error
+        logger.warning("Server starting with limited functionality")
+
+# Shutdown event
+@app.on_event("shutdown")
+def shutdown_event():
+    logger.info("Shutting down...")
+    cleanup_old_tasks(max_age_hours=1)  # Clean up recent tasks on shutdown
+    logger.info("Local models and GROQ client shutdown complete")
+
+# Health check endpoint
+@app.get("/health", response_model=schemas.HealthCheck)
+def health_check(db: Session = Depends(get_db)):
+    try:
+        # Test DB connection
+        db.execute(text("SELECT 1"))
+        db_status = "connected"
+
+        # Get model info from your local models
+        model_info = model_manager.get_model_info()
+        model_info["groq_enabled"] = groq_client is not None
+        model_info["dual_answers"] = USE_DUAL_ANSWERS and groq_client is not None
+
+        return schemas.HealthCheck(
+            status="healthy",
+            database=db_status,
+            models=model_info,
+            timestamp=datetime.utcnow()
+        )
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return schemas.HealthCheck(
+            status="unhealthy",
+            database="disconnected",
+            models={},
+            timestamp=datetime.utcnow()
+        )
+
+# Metrics endpoint
+@app.get("/metrics", response_model=schemas.Metrics)
+def get_metrics(db: Session = Depends(get_db)):
+    try:
+        doc_count = crud.count_documents(db)
+        chunk_count = crud.count_chunks(db)
+        total_size = crud.get_total_file_size(db)
+        
+        # Get model info from your local models
+        model_info = model_manager.get_model_info()
+        model_info["groq_enabled"] = groq_client is not None
+
+        return schemas.Metrics(
+            documents_count=doc_count,
+            chunks_count=chunk_count,
+            avg_chunks_per_doc=chunk_count / max(doc_count, 1),
+            total_file_size=total_size,
+            model_info=model_info
+        )
+    except Exception as e:
+        logger.error(f"Metrics collection failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to collect metrics")
+
+# Document upload with async processing
+@app.post("/upload", response_model=schemas.UploadResponse)
+async def upload_file(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+):
+    try:
+        # Validate file
+        validate_file(file)
+
+        # Generate task ID
+        task_id = generate_task_id()
+
+        # Read file content
+        file_content = await file.read()
+
+        # Start background processing (do NOT pass request-scoped DB)
+        background_tasks.add_task(
+            process_document_async,
+            file_content,
+            file.filename,
+            task_id
+        )
+
+        logger.info(f"Upload started for {file.filename} with task ID: {task_id}")
+
+        return schemas.UploadResponse(
+            task_id=task_id,
+            status="processing",
+            message=f"Upload started for {file.filename}"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Upload failed for {file.filename}: {e}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+# Get upload task status
+@app.get("/upload/status/{task_id}", response_model=schemas.TaskStatus)
+def get_upload_status(task_id: str):
+    status = get_task_status(task_id)
+    if status["status"] == "not_found":
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    return schemas.TaskStatus(
+        task_id=task_id,
+        status=status["status"],
+        progress=status.get("progress", 0),
+        message=status.get("message", ""),
+        result=status.get("result")
+    )
+
+# Enhanced search endpoint
+@app.get("/search", response_model=schemas.AnswerOut)
+def search_documents(
+    q: str = Query(..., description="Search query"),
+    limit: int = Query(10, le=50, description="Number of results"),
+    offset: int = Query(0, ge=0, description="Results offset"),
+    doc_id: Optional[int] = Query(None, description="Search within specific document"),
+    db: Session = Depends(get_db)
+):
+    start_time = time.time()
+
+    try:
+        if not q.strip():
+            raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+        logger.info(f"Search query: '{q}' (limit={limit}, offset={offset}, doc_id={doc_id})")
+
+        # Generate query embedding - always fresh for accuracy
+        query_emb = active_ai_utils.generate_embedding(q)
+
+        # Search chunks with maximum retrieval for accuracy
+        results = crud.search_chunks(
+            db,
+            query_emb,
+            top_k=25,  # Increased from 15 for maximum context selection
+            offset=offset,
+            doc_id=doc_id
+        )
+
+        if not results:
+            return schemas.AnswerOut(
+                query=q,
+                answer="I could not find relevant information for your query.",
+                sources=[],
+                processing_time=time.time() - start_time
+            )
+
+        # Re-rank results using your existing local models
+        reranked = active_ai_utils.rerank_candidates(q, results)
+
+        # Extract contexts for answer generation
+        context_count = min(8, len(reranked))
+        contexts = [r.get("text", "") for r in reranked[:context_count]]
+        
+        # Generate dual answers: Local Models + GROQ
+        dual_answer_info = None
+        if USE_DUAL_ANSWERS and groq_client:
+            dual_result = generate_dual_answers(groq_client, q, contexts)
+            answer = dual_result['answer']
+            
+            # Create dual answer info for response
+            dual_answer_info = schemas.DualAnswerInfo(
+                local_answer=dual_result['local_answer'],
+                groq_answer=dual_result['groq_answer'],
+                selected_source=dual_result['source'],
+                selection_reason=dual_result['selection_reason'],
+                dual_answers_enabled=True
+            )
+            
+            # Log the dual answer process for debugging
+            logger.info(f"Dual answers - Local: {dual_result['local_answer'][:50]}... | GROQ: {dual_result['groq_answer'][:50]}... | Selected: {dual_result['source']} ({dual_result['selection_reason']})")
+        else:
+            # Fallback to local only (your existing system)
+            # Convert contexts from list of dicts to list of strings for synthesize_answer
+            context_strings = [r.get("text", "") for r in reranked[:context_count]]
+            context_dicts = [{"text": ctx} for ctx in context_strings]
+            answer = (active_ai_utils.synthesize_answer(q, context_dicts) or "").strip()
+            
+            # Create dual answer info indicating local-only mode
+            dual_answer_info = schemas.DualAnswerInfo(
+                local_answer=answer,
+                groq_answer="GROQ not available",
+                selected_source="local",
+                selection_reason="GROQ not configured or available",
+                dual_answers_enabled=False
+            )
+            
+            logger.info("Using local models only")
+
+        # Ensure we always have a valid answer
+        if not answer or answer.strip() == "":
+            answer = "I found relevant information but could not generate a clear answer. Please check the source documents."
+
+        # Prepare sources with more details - use same context count as answer synthesis
+        sources = [
+            schemas.Source(
+                doc_id=r.get("doc_id"),
+                doc_title=r.get("doc_title", f"Document {r.get('doc_id')}")
+            )
+            for r in reranked[:context_count]
+            if r.get("doc_id") is not None
+        ]
+
+        processing_time = time.time() - start_time
+
+        return schemas.AnswerOut(
+            query=q,
+            answer=answer,
+            sources=sources,
+            processing_time=processing_time,
+            dual_answers=dual_answer_info
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Search failed for query '{q}': {e}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+# Document management endpoints
+@app.get("/documents", response_model=List[schemas.DocumentSummary])
+def list_documents(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, le=200),
+    db: Session = Depends(get_db)
+):
+    try:
+        documents = crud.get_documents_summary(db, skip=skip, limit=limit)
+        return [schemas.DocumentSummary(**doc) for doc in documents]
+    except Exception as e:
+        logger.error(f"Failed to list documents: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve documents")
+
+@app.get("/documents/{doc_id}", response_model=schemas.Document)
+def get_document(doc_id: int, db: Session = Depends(get_db)):
+    try:
+        doc = crud.get_document(db, doc_id)
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        return doc
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get document {doc_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve document")
+
+@app.delete("/documents/{doc_id}")
+def delete_document(doc_id: int, db: Session = Depends(get_db)):
+    try:
+        success = crud.delete_document(db, doc_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Document not found")
+        return {"message": f"Document {doc_id} deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete document {doc_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete document")
+
+# Model management endpoints
+@app.get("/models/info")
+def get_model_info():
+    try:
+        # Get info from your local models
+        model_info = model_manager.get_model_info()
+        cache_stats = cache_manager.get_cache_stats()
+        
+        # Add GROQ status
+        model_info["groq_enabled"] = groq_client is not None
+        model_info["dual_answers_enabled"] = USE_DUAL_ANSWERS and groq_client is not None
+        
+        return {
+            **model_info, 
+            "cache_stats": cache_stats,
+            "architecture": "Local Models + GROQ Dual Answers" if groq_client else "Local Models Only"
+        }
+    except Exception as e:
+        logger.error(f"Failed to get model info: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get model information")
+
+@app.post("/models/clear-cache")
+def clear_model_cache():
+    try:
+        # Clear your local model caches
+        model_manager.clear_cache()
+        cache_manager.clear_cache()
+        return {
+            "message": "Local model and embedding caches cleared successfully",
+            "note": "GROQ has no local cache to clear"
+        }
+    except Exception as e:
+        logger.error(f"Failed to clear model cache: {e}")
+        raise HTTPException(status_code=500, detail="Failed to clear model cache")
+
+# Administrative endpoints
+@app.post("/admin/cleanup-tasks")
+def cleanup_tasks(max_age_hours: int = Query(24, ge=1, le=168)):  # 1-168 hours (1 week)
+    try:
+        cleanup_old_tasks(max_age_hours)
+        return {"message": f"Cleaned up tasks older than {max_age_hours} hours"}
+    except Exception as e:
+        logger.error(f"Failed to cleanup tasks: {e}")
+        raise HTTPException(status_code=500, detail="Failed to cleanup tasks")
+
+# Note: run with `uvicorn app.main:app --reload`

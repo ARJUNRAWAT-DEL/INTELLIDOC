@@ -1,0 +1,24 @@
+# MCP (Model Context Protocol) dependencies
+mcp>=0.1.0
+
+# Groq API for fast inference
+groq>=0.4.0
+
+# Lightweight embedding model (optional)
+sentence-transformers
+
+# Existing dependencies from backend/requirements.txt
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pgvector
+pydantic
+python-multipart
+pdfplumber
+python-docx
+PyPDF2
+chardet
+numpy
+logging
+pydantic-settings
