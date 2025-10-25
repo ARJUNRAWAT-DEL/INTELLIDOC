@@ -26,7 +26,15 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  /* Muted, professional background */
+  background: linear-gradient(180deg, #fbfdff 0%, #f6f7f9 100%);
+  color: #0f172a;
+}
+
+/* Primary accent used by components */
+:root {
+  --brand-500: #0f172a; /* slate-900 */
+  --muted-600: #475569; /* slate-600 */
 }
 
 /* Custom Animation Classes */
