@@ -35,12 +35,13 @@ export default function UploadForm() {
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg border">
       <h3 className="text-lg font-semibold text-slate-800 mb-3">Upload Document</h3>
-      <p className="text-sm text-slate-500 mb-4">Supported formats: PDF, DOCX, TXT. Files are processed asynchronously.</p>
+      <p className="text-sm text-slate-600 mb-4">Supported formats: PDF, DOCX, TXT. Files are processed asynchronously.</p>
 
       <div className="flex items-center gap-4">
         <input
           type="file"
           onChange={handleFileChange}
+          aria-label="Upload document"
           className="block text-sm text-slate-700 file:bg-slate-100 file:px-3 file:py-1 file:rounded-md file:border file:border-slate-200"
         />
 
@@ -53,13 +54,13 @@ export default function UploadForm() {
         </button>
       </div>
 
-      {status && <p className="mt-4 text-sm text-slate-600">{status}</p>}
+      {status && <p className="mt-4 text-sm text-slate-700">{status}</p>}
 
       {uploadedFile && (
         <div className="mt-4 p-3 bg-green-50 border border-green-100 rounded-md">
           <div className="font-semibold text-slate-800">{uploadedFile.title}</div>
           {uploadedFile.chunks_count !== undefined && (
-            <div className="text-sm text-slate-600">Chunks: {uploadedFile.chunks_count}</div>
+            <div className="text-sm text-slate-700">Chunks: {uploadedFile.chunks_count}</div>
           )}
         </div>
       )}

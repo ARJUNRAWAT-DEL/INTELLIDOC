@@ -108,7 +108,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
         </h3>
         <button
           onClick={loadDocuments}
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="text-emerald-600 hover:text-emerald-800 text-sm"
         >
           Refresh
         </button>
@@ -116,10 +116,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
 
       <div className="grid gap-4">
         {documents.map((doc) => (
-          <div
-            key={doc.id}
-            className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-          >
+          <div key={doc.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
               <div className="flex-1">
                 <h4 className="text-sm font-medium text-gray-900 mb-1">
@@ -144,7 +141,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                 {onDocumentSelect && (
                   <button
                     onClick={() => onDocumentSelect(doc)}
-                    className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200"
+                    className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs hover:bg-emerald-200"
                   >
                     Select
                   </button>
