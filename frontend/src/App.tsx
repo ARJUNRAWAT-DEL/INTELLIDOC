@@ -112,7 +112,7 @@ function App() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="bg-[var(--nav-green)] text-white rounded-full px-4 py-3 flex items-center justify-between shadow-lg">
               <div className="flex items-center gap-6">
-                <div className="text-2xl font-extrabold tracking-tight ml-2">tellet</div>
+                <div className="text-2xl font-extrabold tracking-tight ml-2">IntelliDoc</div>
                 <nav className="hidden md:flex items-center gap-6 text-sm opacity-90">
                   <a className="hover:opacity-100" href="#">Solution</a>
                   <a className="hover:opacity-100" href="#">Resources</a>
@@ -148,7 +148,7 @@ function App() {
                   <div className="flex justify-center lg:justify-end">
                     {/* Phone mockup */}
                     <div className="w-80 h-[480px] rounded-3xl bg-white shadow-2xl border border-gray-100 flex flex-col overflow-hidden">
-                      <div className="h-12 bg-[var(--demo-pink-1)] flex items-center px-4 text-sm text-[var(--nav-green)] font-semibold">Tellet</div>
+                      <div className="h-12 bg-[var(--demo-pink-1)] flex items-center px-4 text-sm text-[var(--nav-green)] font-semibold">IntelliDoc</div>
                       <div className="flex-1 p-6 bg-white">
                         <div className="h-full rounded-2xl bg-[linear-gradient(180deg,#fff,#fff)] p-4">
                           <div className="text-sm text-gray-600 mb-4">We've got some questions for you. Are you ready?</div>
