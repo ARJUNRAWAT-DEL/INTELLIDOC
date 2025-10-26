@@ -10,7 +10,6 @@ interface StunningUploadProps {
 
 const StunningUpload: React.FC<StunningUploadProps> = ({
   onUploadStart,
-  onUploadComplete,
   onUploadError,
   uploadTaskId,
 }) => {
@@ -164,24 +163,17 @@ const StunningUpload: React.FC<StunningUploadProps> = ({
 
       {/* Upload Area */}
       <div className="relative group">
-        {/* Animated Border */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 via-green-500 to-amber-500 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-        
-        {/* Drop Zone */}
-        <div
-          className={`relative border-3 border-dashed rounded-3xl p-12 text-center transition-all duration-500 cursor-pointer overflow-hidden ${
-            isDragging
-              ? 'border-emerald-400 bg-gradient-to-br from-emerald-50 to-green-50 scale-105'
-              : file
-              ? 'border-green-300 bg-gradient-to-br from-green-50/80 to-emerald-50/60'
-              : 'border-gray-300 bg-gradient-to-br from-white/80 to-gray-50/60 hover:border-emerald-300 hover:bg-gradient-to-br hover:from-emerald-50/80 hover:to-green-50/60'
-          }`}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onClick={() => !file && fileInputRef.current?.click()}
-        >
+        {/* Drop Zone (simplified, flat design) */}
+          <div
+            className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 cursor-pointer overflow-hidden bg-white ${
+              isDragging ? 'border-emerald-400 scale-105' : 'border-gray-200'
+            }`}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onClick={() => !file && fileInputRef.current?.click()}
+          >
           <input
             ref={fileInputRef}
             type="file"
@@ -201,11 +193,7 @@ const StunningUpload: React.FC<StunningUploadProps> = ({
             {!file ? (
               <>
                 {/* Upload Icon */}
-                <div className={`w-24 h-24 mx-auto mb-8 rounded-3xl flex items-center justify-center transition-all duration-500 ${
-                  isDragging 
-                    ? 'bg-emerald-100 scale-110 shadow-2xl' 
-                    : 'bg-white/80 group-hover:bg-emerald-50 group-hover:scale-110 shadow-xl'
-                }`}>
+                <div className={`w-24 h-24 mx-auto mb-8 rounded-3xl flex items-center justify-center transition-all duration-500 ${isDragging ? 'bg-emerald-100 scale-105 shadow-md' : 'bg-gray-50 shadow-sm'}`}>
                   <svg className={`w-12 h-12 transition-all duration-500 ${
                     isDragging ? 'text-emerald-500 scale-110' : 'text-gray-400 group-hover:text-emerald-500'
                   }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,16 +216,12 @@ const StunningUpload: React.FC<StunningUploadProps> = ({
                 {/* Supported Formats */}
                 <div className="flex items-center justify-center space-x-6">
                   {[
-                    { ext: 'PDF', color: 'bg-red-500', icon: '📄' },
-                    { ext: 'DOCX', color: 'bg-blue-500', icon: '📝' },
-                    { ext: 'DOC', color: 'bg-blue-600', icon: '📄' },
-                    { ext: 'TXT', color: 'bg-gray-500', icon: '📋' }
+                    { ext: 'PDF', icon: '📄' },
+                    { ext: 'DOCX', icon: '📝' },
+                    { ext: 'DOC', icon: '📄' },
+                    { ext: 'TXT', icon: '📋' }
                   ].map((format, index) => (
-                    <div key={format.ext} 
-                         className={`flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full border border-white/60 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${
-                           isDragging ? 'animate-pulse' : ''
-                         }`}
-                         style={{animationDelay: `${index * 100}ms`}}>
+                    <div key={format.ext} className={`flex items-center space-x-2 bg-white px-4 py-2 rounded-full border border-gray-100 shadow-sm transition-all duration-200 ${isDragging ? 'scale-105' : ''}`} style={{animationDelay: `${index * 100}ms`}}>
                       <span className="text-lg">{format.icon}</span>
                       <span className="text-sm font-semibold text-gray-700">{format.ext}</span>
                     </div>
@@ -247,7 +231,7 @@ const StunningUpload: React.FC<StunningUploadProps> = ({
             ) : (
               <>
                 {/* File Preview */}
-                <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-8 border border-white/60 shadow-2xl max-w-md mx-auto">
+                <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm max-w-md mx-auto">
                   <div className="flex items-start space-x-6">
                     <div className={`w-16 h-16 bg-gradient-to-br ${getFileColor(file.name)} rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg`}>
                       <span className="text-2xl">{getFileIcon(file.name)}</span>

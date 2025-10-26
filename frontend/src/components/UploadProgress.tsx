@@ -28,30 +28,27 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
   onError,
 }) => {
   const [status, setStatus] = useState<TaskStatus | null>(null);
-  const [polling, setPolling] = useState(false);
+    // const [polling, setPolling] = useState(false);
 
   useEffect(() => {
     if (!taskId) {
       setStatus(null);
-      setPolling(false);
+        // setPolling(false);
       return;
     }
 
-    setPolling(true);
+      // setPolling(true);
     const pollStatus = async () => {
       try {
         const taskStatus = await ApiService.getUploadStatus(taskId);
         setStatus(taskStatus);
 
         if (taskStatus.status === "completed") {
-          setPolling(false);
           onComplete?.(taskStatus.result);
         } else if (taskStatus.status === "failed") {
-          setPolling(false);
           onError?.(taskStatus.message);
         }
       } catch (err: any) {
-        setPolling(false);
         onError?.(err.message);
       }
     };
@@ -61,7 +58,7 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
 
     return () => {
       clearInterval(interval);
-      setPolling(false);
+        // setPolling(false);
     };
   }, [taskId, onComplete, onError]);
 
@@ -70,15 +67,16 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
   }
 
   const getStatusColor = () => {
+    // Map to the project's accent tokens (neutral fallback)
     switch (status.status) {
       case "processing":
-        return "bg-blue-500";
+        return "bg-amber-400"; // warm accent during processing
       case "completed":
-        return "bg-green-500";
+        return "bg-emerald-600"; // green success
       case "failed":
-        return "bg-red-500";
+        return "bg-red-500"; // keep red for errors
       default:
-        return "bg-gray-500";
+        return "bg-gray-400";
     }
   };
 
@@ -106,7 +104,7 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+    <div className="bg-white border border-gray-100 rounded-2xl p-4 mb-4 shadow-sm">
       <div className="flex items-center space-x-3">
         <div className={`flex-shrink-0 w-8 h-8 rounded-full ${getStatusColor()} flex items-center justify-center`}>
           {getStatusIcon()}
@@ -123,7 +121,7 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
           </div>
           
           {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-100 rounded-full h-2">
             <div
               className={`h-2 rounded-full transition-all duration-500 ${getStatusColor()}`}
               style={{ width: `${status.progress}%` }}
@@ -134,11 +132,11 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
           
           {/* Result Details */}
           {status.status === "completed" && status.result && (
-            <div className="mt-3 p-3 bg-green-50 rounded-lg">
-              <h5 className="text-sm font-medium text-green-900 mb-1">
+            <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+              <h5 className="text-sm font-medium text-emerald-900 mb-1">
                 Upload Successful!
               </h5>
-              <div className="text-xs text-green-700 space-y-1">
+              <div className="text-xs text-emerald-700 space-y-1">
                 <p>📄 Document: {status.result.title}</p>
                 <p>🆔 ID: {status.result.document_id}</p>
                 <p>🧩 Chunks: {status.result.chunks_count}</p>
