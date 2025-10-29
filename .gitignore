@@ -41,3 +41,7 @@ backend/uploads/*
 # Cache
 .cache/
 transformers_cache/
+
+# Local archive and editor leftovers
+ai-doc-tool - Copy.zip
+.gitignore.txt

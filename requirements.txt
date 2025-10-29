@@ -1,0 +1,36 @@
+# Consolidated Python requirements for the project (backend + optional MCP)
+# Generated: 2025-10-29
+
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pgvector
+pydantic
+pydantic-settings
+python-multipart
+python-dotenv
+transformers>=4.35.0
+sentence-transformers>=2.2.0
+chardet
+torch>=2.0.0
+pdfplumber
+python-docx
+PyPDF2
+numpy
+accelerate
+huggingface-hub>=0.19.0
+groq
+aiofiles
+safetensors>=0.4.0
+tokenizers>=0.15.0
+pdfminer.six
+pdf2image
+pytesseract
+Pillow
+mcp>=0.1.0
+
+# Notes:
+# - Some packages (torch, transformers, sentence-transformers) may require
+#   specific wheels or CUDA-enabled installs for GPU acceleration.
+# - Remove or pin versions as needed for reproducible installs.

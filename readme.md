@@ -1,5 +1,7 @@
 # AI Document Search Tool
 
+> Last updated: 2025-10-29
+
 An intelligent document search application that uses AI embeddings and natural language processing to provide semantic search capabilities across uploaded documents.
 
 ## Overview
