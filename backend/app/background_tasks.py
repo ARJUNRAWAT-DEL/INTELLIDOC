@@ -3,6 +3,7 @@ from typing import Dict, Any
 from sqlalchemy.orm import Session
 import os
 import time
+import shutil
 
 from . import crud, db
 from .logger import logger
@@ -73,13 +74,31 @@ def process_document_async(
         file_path = os.path.join(settings.upload_dir, f"{task_id}_{safe_filename}")
         with open(file_path, "wb") as f:
             f.write(file_content)
+        logger.info(f"Saved uploaded file to {file_path}")
         update_task_status(task_id, "processing", 20, "File saved, extracting text")
 
         # Extract text
         ai_backend = get_ai_utils()
         content = ai_backend.extract_text_from_file(file_path)
         if not content or not content.strip():
-            update_task_status(task_id, "failed", 0, "Could not extract text from file")
+            # Provide a more actionable failure message so frontend/users know why upload "succeeds"
+            # but processing fails. Common causes: image-only (scanned) PDFs and missing OCR
+            # dependencies (poppler/pdftoppm, pdf2image, pytesseract / Tesseract OCR).
+            hint = (
+                "Could not extract text from file. The PDF may be image-only (scanned), or text extraction "
+                "failed. To enable OCR fallback install poppler (pdftoppm) and Tesseract, and add the Python "
+                "packages `pdf2image` and `pytesseract`."
+            )
+            update_task_status(task_id, "failed", 0, hint)
+            # Preserve a copy of the failed upload for debugging
+            try:
+                failed_dir = os.path.join(settings.upload_dir, "failed_uploads")
+                os.makedirs(failed_dir, exist_ok=True)
+                failed_copy = os.path.join(failed_dir, os.path.basename(file_path))
+                shutil.copy(file_path, failed_copy)
+                logger.info(f"Copied failed upload to {failed_copy} for inspection")
+            except Exception as e:
+                logger.warning(f"Could not copy failed upload for inspection: {e}")
             return
 
         update_task_status(task_id, "processing", 40, "Text extracted, generating summary")

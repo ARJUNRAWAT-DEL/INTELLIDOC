@@ -12,8 +12,18 @@ from typing import Any, Dict, List, Optional, Tuple
 import threading
 import time
 
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+# The 'mcp' package may not be installed in some environments (it's optional).
+# Import it conditionally and provide safe fallbacks so the backend can start
+# even when the local MCP client/server plumbing isn't available.
+try:
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+except Exception:
+    ClientSession = None  # type: ignore
+    StdioServerParameters = None  # type: ignore
+
+    async def stdio_client(*args, **kwargs):  # type: ignore
+        raise RuntimeError("mcp client not available")
 
 # Groq API for direct calls
 try:
@@ -40,23 +50,29 @@ class MCPClient:
     async def _start_mcp_server_and_connect(self):
         """Start local MCP server process and establish connection"""
         try:
+            # If the mcp package isn't available, skip starting local MCP.
+            if StdioServerParameters is None or ClientSession is None:
+                logger.warning("mcp package not available; skipping local MCP startup")
+                self._mcp_connected = False
+                return
+
             # Start local MCP server (your existing models)
             server_script = settings.mcp_server_script
             self.mcp_process = subprocess.Popen([
                 sys.executable, server_script
             ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            
+
             logger.info("Local MCP server process started")
-            
+
             # Create client session
             server_params = StdioServerParameters(
                 command=sys.executable,
                 args=[server_script]
             )
-            
+
             self.mcp_session = await stdio_client(server_params)
             await self.mcp_session.initialize()
-            
+
             self._mcp_connected = True
             logger.info("Local MCP client connected successfully")
             

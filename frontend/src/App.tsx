@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import SearchBar from "./components/SearchBar";
 import ModernSearchResults from "./components/ModernSearchResults";
 import StunningUpload from "./components/StunningUpload";
 import DocumentLibrary from "./components/DocumentLibrary";
 import UploadProgress from "./components/UploadProgress";
 import { ApiService } from "./services/api";
+import Login from "./pages/Login";
+import HowItWorks from "./pages/HowItWorks";
+import OnboardingModal from './components/OnboardingModal';
 
 // Local type definitions to avoid import issues
 interface Source {
@@ -47,6 +51,7 @@ interface Metrics {
 }
 
 function App() {
+  const navigate = useNavigate();
   const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -55,11 +60,53 @@ function App() {
   const [refreshDocuments, setRefreshDocuments] = useState(0);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [activeTab, setActiveTab] = useState<"upload" | "library" | "metrics">("upload");
+  const [showLogin, setShowLogin] = useState(false);
+  const [user, setUser] = useState<{ name?: string; email?: string } | null>(null);
+  const [isDevMock, setIsDevMock] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+
+  // listen for global event to open the onboarding modal
+  useEffect(() => {
+    const handler = () => setShowOnboardingModal(true);
+    window.addEventListener('openOnboardingModal', handler as EventListener);
+    return () => window.removeEventListener('openOnboardingModal', handler as EventListener);
+  }, []);
 
   // Load metrics on startup
   useEffect(() => {
     loadMetrics();
+    loadUser();
+    detectDevMock();
   }, []);
+
+  const detectDevMock = () => {
+    try {
+      if (typeof window === 'undefined') return;
+      const devUsers = localStorage.getItem('dev_users');
+      const token = ApiService.getToken();
+      if (devUsers || (token && token.startsWith && token.startsWith('dev-token-'))) {
+        setIsDevMock(true);
+        return;
+      }
+    } catch (e) {
+      // ignore
+    }
+    setIsDevMock(false);
+  };
+
+  const loadUser = () => {
+    try {
+      const raw = localStorage.getItem('intellidoc_user');
+      if (raw) {
+        setUser(JSON.parse(raw));
+        return;
+      }
+    } catch (e) {
+      // ignore
+    }
+    setUser(null);
+  };
 
   const loadMetrics = async () => {
     try {
@@ -107,6 +154,13 @@ function App() {
 
       {/* Page Content */}
       <div className="relative z-20">
+        {showLogin && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="max-w-md w-full mx-4">
+              <Login onSuccess={() => { setShowLogin(false); loadUser(); }} onCancel={() => setShowLogin(false)} />
+            </div>
+          </div>
+        )}
         {/* Top navigation (demo style: rounded dark green pill) */}
         <div className="w-full py-6">
           <div className="max-w-7xl mx-auto px-6">
@@ -119,8 +173,20 @@ function App() {
                 </nav>
               </div>
               <div className="flex items-center gap-3">
+                {isDevMock && (
+                  <div className="hidden md:flex items-center mr-4">
+                    <span title="Using local dev auth mocks" className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm font-semibold border border-yellow-200">DEV MOCK</span>
+                  </div>
+                )}
                 <button className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-sm">Get a quote</button>
-                <button className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-sm">Log in</button>
+                {user ? (
+                  <div className="hidden md:flex items-center gap-3">
+                    <span className="text-sm font-semibold">Hi, {user.name || user.email}</span>
+                    <button onClick={() => { ApiService.logout(); sessionStorage.removeItem('intellidoc_token'); localStorage.removeItem('intellidoc_user'); setUser(null); }} className="px-3 py-2 rounded-full border border-white/20 text-sm">Log out</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setShowLogin(true)} className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-sm">Log in</button>
+                )}
                 <button className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--cta-pink)] text-white text-sm shadow">Book a demo</button>
               </div>
             </div>
@@ -130,7 +196,8 @@ function App() {
         {/* Hero + Dashboard wrapper (shared white rounded backdrop for consistent look) */}
         <div className="px-8 pb-16">
           <div className="max-w-7xl mx-auto relative px-4">
-            <div className="absolute -inset-6 rounded-5xl bg-white shadow-4xl pointer-events-none -z-10" />
+            {/* Decorative rounded backdrop: hide on small screens to avoid large blurry shadow on mobile */}
+            <div className="hidden sm:block absolute -inset-6 rounded-5xl bg-white shadow-4xl pointer-events-none -z-10" />
             <div className="relative z-10">
               {/* Hero (demo look) */}
               <section className="bg-transparent">
@@ -141,8 +208,8 @@ function App() {
                     <p className="text-2xl text-[var(--nav-green)] font-semibold">Search. Summarize. Discover.</p>
                     <p className="text-lg text-[rgba(0,0,0,0.55)] max-w-2xl mt-4">IntelliDoc turns your PDFs, Word documents and text files into a searchable knowledge base. Upload documents, index content, and ask natural-language questions — get accurate, sourced answers instantly.</p>
                     <div className="mt-8 flex items-center gap-4">
-                      <button className="px-6 py-3 rounded-full bg-[var(--nav-green)] text-white font-semibold shadow">Try IntelliDoc</button>
-                      <a className="text-sm text-[rgba(0,0,0,0.6)]">How it works →</a>
+                      <button onClick={() => navigate('/onboarding')} className="px-6 py-3 rounded-full bg-[var(--nav-green)] text-white font-semibold shadow">Try IntelliDoc</button>
+                      <button onClick={() => setShowHowItWorks(true)} className="text-sm text-[rgba(0,0,0,0.6)]">How it works →</button>
                     </div>
                   </div>
                   <div className="flex justify-center lg:justify-end">
@@ -227,6 +294,12 @@ function App() {
           </div>
         </footer>
       </div>
+      {showHowItWorks && (
+        <HowItWorks modal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
+      )}
+      {showOnboardingModal && (
+        <OnboardingModal isOpen={showOnboardingModal} onClose={() => setShowOnboardingModal(false)} />
+      )}
     </div>
   );
 }

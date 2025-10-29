@@ -1,5 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap');
 
+/* stylelint-disable at-rule-no-unknown */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,12 +11,23 @@
 
 :root {
   /* Demo palette (pink hero with green nav accents) */
-  --demo-pink-1: #ffd5dd; /* light */
-  --demo-pink-2: #ffc6cf; /* mid */
-  --demo-pink-3: #ffdbe3; /* soft */
+  /* site accent gradient (switched from pink to light blue) */
+  --demo-pink-1: #e6f6ff; /* light blue 1 */
+  --demo-pink-2: #d7eefc; /* light blue 2 */
+  --demo-pink-3: #dff4ff; /* light blue 3 */
   --nav-green: #064e3b; /* dark green nav */
   --nav-green-light: #0f766e; /* emerald */
   --cta-pink: #ff6b8a; /* pink CTA */
+  /* Design tokens (IntelliDoc) */
+  --brand-900: #074c3f;
+  --accent-pink: #ff6f83;
+  --bg-soft: #fff5f7;
+  --surface: #ffffff;
+  --text: #0b1720;
+  --muted: #6b7280;
+  --radii-sm: 6px;
+  --radii-md: 10px;
+  --radii-pill: 24px;
   --muted-600: #6b7280;
   --text-900: #06202a;
 
@@ -29,6 +41,18 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Display font for large headings */
+:root {
+  --display-font: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Strong display heading style to match reference */
+h1 {
+  font-family: var(--display-font);
+  letter-spacing: -0.02em;
+  line-height: 0.98;
 }
 
 body {
@@ -117,6 +141,13 @@ body {
   }
 }
 
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(-12px, -8px) scale(1.05); }
+  66% { transform: translate(8px, -6px) scale(0.98); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
 @keyframes workspace-breathe {
   0%, 100% {
     transform: scale(1) translateY(0px);
@@ -126,12 +157,106 @@ body {
   }
 }
 
+/* entrance animation: slide up + fade */
+@keyframes slide-up-fade {
+  0% { opacity: 0; transform: translateY(14px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.enter-slide-up {
+  animation: slide-up-fade 700ms cubic-bezier(.2,.9,.2,1) both;
+}
+
 @keyframes parallax-slow {
   0% {
     transform: translateY(0px);
   }
   100% {
     transform: translateY(-20px);
+  }
+}
+
+/* Ken Burns: slow scale + translate for background images */
+@keyframes ken-burns {
+  0% { transform: scale(1) translateY(0px) translateX(0px); }
+  50% { transform: scale(1.06) translateY(-6px) translateX(-4px); }
+  100% { transform: scale(1) translateY(0px) translateX(0px); }
+}
+
+@keyframes text-fade-in-up {
+  0% { opacity: 0; transform: translateY(8px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ken-burns {
+  animation: ken-burns 8s ease-in-out infinite alternate;
+  transform-origin: center center;
+}
+
+.phone-overlay-text {
+  animation: text-fade-in-up 900ms cubic-bezier(.2,.9,.2,1) both;
+  font-weight: 700;
+  color: #000000;
+  text-align: center;
+  padding: 0.5rem 1rem;
+}
+
+/* Overlay variant that sits at the top of the phone and uses the display font */
+.phone-overlay-top {
+  animation: text-fade-in-up 900ms cubic-bezier(.2,.9,.2,1) both;
+  font-family: var(--display-font);
+  font-weight: 800;
+  color: #000000;
+  text-align: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.05;
+  text-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  backdrop-filter: blur(4px) brightness(0.98);
+}
+
+/* New hero overlay centered variant for better contrast */
+.phone-overlay-hero {
+  animation: text-fade-in-up 900ms cubic-bezier(.2,.9,.2,1) both;
+  font-family: var(--display-font);
+  font-weight: 800;
+  color: #F5F7FA; /* soft white */
+  text-align: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 1.125rem;
+  line-height: 1.05;
+  text-shadow: 0 10px 30px rgba(0,0,0,0.45);
+}
+
+/* Gradient overlay to darken top and mid area for text legibility */
+.phone-gradient-top {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(2,6,23,0.45) 25%, rgba(2,6,23,0.18) 45%, rgba(2,6,23,0) 70%);
+  pointer-events: none;
+}
+
+/* Subtle outer phone shadow for depth */
+.phone-outer-shadow {
+  box-shadow: 0 28px 60px -20px rgba(10,20,40,0.4), 0 12px 30px -10px rgba(10,20,40,0.25);
+}
+
+/* Slightly reduced corner radius for a more realistic modern phone */
+.phone-frame-rounded {
+  border-radius: 1rem; /* ~16px */
+}
+
+@media (min-width: 640px) {
+  .phone-overlay-top {
+    font-size: 1.05rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .phone-overlay-top {
+    font-size: 1.25rem;
   }
 }
 
@@ -186,6 +311,10 @@ body {
 
 .animate-parallax-slow {
   animation: parallax-slow 15s ease-in-out infinite alternate;
+}
+
+.animate-blob {
+  animation: blob 8s ease-in-out infinite;
 }
 
 .animate-light-sweep {

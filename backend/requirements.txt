@@ -22,3 +22,8 @@ aiofiles
 asyncio
 safetensors>=0.4.0
 tokenizers>=0.15.0
+
+# OCR and robust PDF parsing
+pdfminer.six
+pdf2image
+pytesseract

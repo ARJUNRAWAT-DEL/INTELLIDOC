@@ -14,6 +14,25 @@ try:
 except Exception:
     pdfplumber = None
 
+# pdfminer fallback (more robust for some PDFs)
+try:
+    from pdfminer.high_level import extract_text as pdfminer_extract_text
+except Exception:
+    pdfminer_extract_text = None
+
+# Optional OCR fallback (for scanned/image PDFs)
+try:
+    from pdf2image import convert_from_path
+except Exception:
+    convert_from_path = None
+
+try:
+    import pytesseract
+except Exception:
+    pytesseract = None
+import os
+import shutil
+
 from PyPDF2 import PdfReader
 import docx
 import chardet
@@ -44,9 +63,87 @@ def extract_text_from_file(filepath: str) -> str:
                         pages.append(p.extract_text() or "")
                 return clean_text("\n\n".join(pages))
             except Exception:
-                pass
+                logger.exception(f"pdfplumber failed to extract text from {filepath}")
         reader = PdfReader(filepath)
-        return clean_text(" ".join([(page.extract_text() or "") for page in reader.pages]))
+        try:
+            texts = [page.extract_text() or "" for page in reader.pages]
+            joined = " ".join(texts).strip()
+            if joined:
+                return clean_text(joined)
+        except Exception:
+            logger.exception(f"PyPDF2 failed to extract text from {filepath}")
+
+        # Try pdfminer as a last-resort fallback before giving up
+        if pdfminer_extract_text is not None:
+            try:
+                miner_text = pdfminer_extract_text(filepath) or ""
+                if miner_text.strip():
+                    return clean_text(miner_text)
+            except Exception:
+                logger.exception(f"pdfminer failed to extract text from {filepath}")
+
+        # If we reach here, extraction failed for this PDF
+        # As last resort, try OCR if available (useful for scanned PDFs)
+        # Prepare poppler and tesseract paths from environment if provided
+        poppler_path = os.getenv("POPLER_PATH")
+        tesseract_cmd = os.getenv("TESSERACT_CMD")
+        if tesseract_cmd:
+            try:
+                pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+            except Exception:
+                logger.exception(f"Failed to set pytesseract command to {tesseract_cmd}")
+
+        # If explicit env vars not provided, try to detect binaries on PATH
+        detected_tesseract = shutil.which("tesseract")
+        detected_pdftoppm = shutil.which("pdftoppm")
+
+        if not poppler_path and detected_pdftoppm:
+            poppler_path = None  # let pdf2image use system pdftoppm
+
+        if convert_from_path is not None and pytesseract is not None:
+            try:
+                # Limit pages to avoid huge memory usage
+                max_pages = 50
+                # pass poppler_path explicitly if provided
+                if poppler_path:
+                    images = convert_from_path(filepath, dpi=300, poppler_path=poppler_path)
+                else:
+                    images = convert_from_path(filepath, dpi=300)
+                text_parts = []
+                for i, img in enumerate(images):
+                    if i >= max_pages:
+                        break
+                    try:
+                        page_text = pytesseract.image_to_string(img)
+                        if page_text:
+                            text_parts.append(page_text)
+                    except Exception:
+                        logger.exception(f"pytesseract failed on page {i} of {filepath}")
+                # cleanup images
+                try:
+                    for im in images:
+                        try:
+                            im.close()
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+
+                ocr_text = "\n\n".join(text_parts).strip()
+                if ocr_text:
+                    logger.info(f"OCR extracted text from {filepath} (pages: {min(len(images), max_pages)})")
+                    return clean_text(ocr_text)
+            except Exception as e:
+                # Common failure reasons: poppler not installed or not in PATH
+                logger.exception(f"OCR fallback failed for {filepath}: {e}")
+        else:
+            # Log helpful hints if OCR libs are missing
+            if convert_from_path is None:
+                logger.info("pdf2image not available — OCR fallback disabled (install pdf2image and poppler)")
+            if pytesseract is None:
+                logger.info("pytesseract not available — OCR fallback disabled (install Tesseract and pytesseract)")
+
+        return ""
 
     if filepath.lower().endswith(".docx"):
         doc = docx.Document(filepath)

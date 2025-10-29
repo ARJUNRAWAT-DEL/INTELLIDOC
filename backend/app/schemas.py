@@ -95,3 +95,48 @@ class Metrics(BaseModel):
     avg_chunks_per_doc: float
     total_file_size: int
     model_info: Dict[str, Any]
+
+
+class DemoRequestIn(BaseModel):
+    name: Optional[str] = None
+    email: str
+    company: Optional[str] = None
+    message: Optional[str] = None
+
+
+class DemoRequestOut(BaseModel):
+    id: int
+    name: Optional[str] = None
+    email: str
+    company: Optional[str] = None
+    message: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class OnboardingIn(BaseModel):
+    user_email: str
+    persona: Optional[str] = None
+    sample_query: Optional[str] = None
+    upload_filename: Optional[str] = None
+    upload_task_id: Optional[str] = None
+    completed: Optional[bool] = False
+    meta: Optional[Dict[str, Any]] = None
+
+
+class OnboardingOut(BaseModel):
+    id: int
+    user_email: str
+    persona: Optional[str] = None
+    sample_query: Optional[str] = None
+    upload_filename: Optional[str] = None
+    upload_task_id: Optional[str] = None
+    completed: bool = False
+    meta: Optional[Dict[str, Any]] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
