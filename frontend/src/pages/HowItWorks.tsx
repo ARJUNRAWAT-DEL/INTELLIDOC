@@ -128,20 +128,20 @@ export default function HowItWorks(props: Props) {
   };
 
   const content = (
-    <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
-      <header className="p-6 border-b flex items-center justify-between">
+    <div className="max-w-5xl mx-auto bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-premium border border-slate-700 overflow-hidden">
+      <header className="p-6 border-b border-slate-700 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">How IntelliDoc Works</h1>
-          <p className="mt-1 text-sm text-gray-600">A short guided tour with animations and a small interactive example.</p>
+          <h1 className="text-2xl font-extrabold text-white font-display">How IntelliDoc Works</h1>
+          <p className="mt-1 text-sm text-slate-400">A short guided tour with animations and a small interactive example.</p>
         </div>
         <div className="flex items-center gap-3">
           {LottieComp && animData ? (
             // @ts-ignore - dynamic component
             <LottieComp animationData={animData} loop={true} style={{ width: 120, height: 120 }} />
           ) : (
-            <div className="w-28 h-28 bg-gradient-to-br from-green-200 to-pink-200 rounded-lg flex items-center justify-center text-sm text-gray-700">Demo</div>
+            <div className="w-28 h-28 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-lg flex items-center justify-center text-sm text-slate-300 font-semibold border border-slate-700">Demo</div>
           )}
-          {modal && <button onClick={onClose} className="px-3 py-2 rounded-md bg-gray-100">Close</button>}
+          {modal && <button onClick={onClose} className="px-3 py-2 rounded-md bg-slate-700 text-white hover:bg-slate-600">Close</button>}
         </div>
       </header>
 
@@ -150,35 +150,35 @@ export default function HowItWorks(props: Props) {
           {/* Left: main content spans two columns on large screens */}
           <div className="lg:col-span-2 space-y-6">
             <section>
-              <h2 className="text-lg font-bold mb-3">At a glance</h2>
+              <h2 className="text-lg font-bold text-white mb-3 font-display">At a glance</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[0,1,2].map(i => (
-                  <div key={i} className={`p-6 rounded-xl border bg-white ${step === i ? 'shadow-xl scale-105 border-green-200' : 'border-gray-100'} transition-all animate-slide-in`} style={{ animationDelay: `${i * 120}ms` }}>
+                  <div key={i} className={`p-6 rounded-xl border transition-all animate-slide-in ${step === i ? 'shadow-premium scale-105 border-blue-400 bg-slate-700/50' : 'border-slate-700 bg-slate-800/50'}`} style={{ animationDelay: `${i * 120}ms` }}>
                     <StepIcon index={i} />
-                    <div className="text-sm font-semibold mb-1">{i===0 ? 'Upload' : i===1 ? 'Search' : 'Answer'}</div>
-                    <p className="text-sm text-gray-600">{i===0 ? 'Drag & drop PDFs, Word docs — IntelliDoc extracts text.' : i===1 ? 'Ask natural-language questions — embeddings find relevant passages.' : 'Receive concise, sourced answers with links back to documents.'}</p>
+                    <div className="text-sm font-semibold text-white mb-1">{i===0 ? 'Upload' : i===1 ? 'Search' : 'Answer'}</div>
+                    <p className="text-sm text-slate-400">{i===0 ? 'Drag & drop PDFs, Word docs — IntelliDoc extracts text.' : i===1 ? 'Ask natural-language questions — embeddings find relevant passages.' : 'Receive concise, sourced answers with links back to documents.'}</p>
                   </div>
                 ))}
               </div>
             </section>
 
             <section>
-              <h2 className="text-lg font-bold mb-3">Interactive example</h2>
+              <h2 className="text-lg font-bold text-white mb-3 font-display">Interactive example</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl border border-gray-100">
-                  <div className="text-sm text-gray-500 mb-2">Example query</div>
-                  <textarea value={query} onChange={(e) => setQuery(e.target.value)} className="w-full p-2 rounded-md border border-gray-200 h-28" />
+                <div className="p-4 rounded-xl border border-slate-700 bg-slate-800/50">
+                  <div className="text-sm text-slate-400 mb-2">Example query</div>
+                  <textarea value={query} onChange={(e) => setQuery(e.target.value)} className="w-full p-2 rounded-md border border-slate-600 bg-slate-900 text-white h-28 focus:border-blue-500 focus:outline-none" />
                   <div className="mt-3 flex gap-2">
-                    <button onClick={runExample} className="px-3 py-2 bg-[var(--nav-green)] text-white rounded-md text-sm">Run query</button>
-                    <button onClick={() => { setQuery('Find all clauses about termination and summarize in 3 bullets'); setAnswer(''); }} className="px-3 py-2 border rounded-md text-sm">Load example</button>
+                    <button onClick={runExample} className="px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md text-sm hover:from-blue-500 hover:to-indigo-500 font-semibold">Run query</button>
+                    <button onClick={() => { setQuery('Find all clauses about termination and summarize in 3 bullets'); setAnswer(''); }} className="px-3 py-2 border border-slate-600 text-slate-300 rounded-md text-sm hover:border-slate-500 hover:bg-slate-800">Load example</button>
                   </div>
-                  <div className="mt-2 text-xs text-gray-500">This demo is local and simulates the real answer.</div>
+                  <div className="mt-2 text-xs text-slate-500">This demo is local and simulates the real answer.</div>
                 </div>
 
-                <div className="p-4 rounded-xl border border-gray-100 flex flex-col">
-                  <div className="text-sm text-gray-500 mb-2">AI answer</div>
-                  <div className="flex-1 bg-gray-50 p-3 rounded-md border border-dashed border-gray-200 overflow-auto whitespace-pre-wrap text-gray-800">{answer || <span className="text-gray-400">Run the example to see a simulated answer appear here.</span>}</div>
-                  <div className="mt-2 text-xs text-gray-500">Real answers include document sources and timestamps.</div>
+                <div className="p-4 rounded-xl border border-slate-700 bg-slate-800/50 flex flex-col">
+                  <div className="text-sm text-slate-400 mb-2">AI answer</div>
+                  <div className="flex-1 bg-slate-900 p-3 rounded-md border border-dashed border-slate-600 overflow-auto whitespace-pre-wrap text-slate-200">{answer || <span className="text-slate-500">Run the example to see a simulated answer appear here.</span>}</div>
+                  <div className="mt-2 text-xs text-slate-500">Real answers include document sources and timestamps.</div>
                 </div>
               </div>
             </section>
@@ -187,10 +187,10 @@ export default function HowItWorks(props: Props) {
           {/* Right: professional document-focused illustration */}
           <aside className="hidden lg:flex lg:flex-col lg:items-center lg:justify-start">
             <div className="w-full p-6">
-              <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 shadow-lg animate-pulse-soft">
+              <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 shadow-premium border border-slate-700 animate-pulse-soft">
                 <DocumentHeroSVG />
-                <h3 className="mt-4 text-lg font-bold text-gray-900">Document intelligence</h3>
-                <p className="mt-2 text-sm text-gray-600">Visualize how IntelliDoc extracts, indexes and surfaces answers from your documents.</p>
+                <h3 className="mt-4 text-lg font-bold text-white font-display">Document intelligence</h3>
+                <p className="mt-2 text-sm text-slate-300">Visualize how IntelliDoc extracts, indexes and surfaces answers from your documents.</p>
               </div>
             </div>
           </aside>
@@ -220,6 +220,6 @@ export default function HowItWorks(props: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 p-8">{content}</div>
+    <div>{content}</div>
   );
 }

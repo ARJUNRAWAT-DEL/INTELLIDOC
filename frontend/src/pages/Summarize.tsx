@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { Spinner } from '../components/Spinner';
+import { FiTrash2, FiCopy, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { ApiService, API_URL } from '../services/api';
 
 const SummarizePage: React.FC = () => {
@@ -18,6 +20,7 @@ const SummarizePage: React.FC = () => {
   const dragRef = useRef<HTMLDivElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [filter, setFilter] = useState('');
+  const [previewExpanded, setPreviewExpanded] = useState(false);
 
   useEffect(() => {
     loadDocuments();
@@ -211,23 +214,23 @@ const SummarizePage: React.FC = () => {
   };
 
   return (
-    <div className="py-12 px-6 bg-gradient-to-b from-pink-50 to-white min-h-screen">
+    <div className="py-12 px-2 sm:px-6 bg-gradient-to-b from-pink-50 to-white min-h-screen animate-fadein">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-4xl font-extrabold">Summarize & Ask — Upload your document</h2>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-2">
+          <h2 className="text-4xl font-extrabold tracking-tight">Summarize & Ask — Upload your document</h2>
           <div className="text-sm text-gray-600">{files.length} documents • {selectedDoc ? `Selected: ${selectedDoc.title}` : 'No document selected'}</div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Column 1: Upload */}
-          <div className="bg-white border rounded-2xl p-6 shadow-lg">
+  <div className="flex flex-col gap-6">
+          {/* Section 1: Upload */}
+          <div className="bg-white border rounded-2xl p-6 shadow-xl transition-shadow duration-300 hover:shadow-2xl animate-section">
             <h3 className="font-semibold mb-3">Upload a document</h3>
             <p className="text-sm text-gray-500 mb-4">Supported: PDF, DOCX, TXT. Uploads are processed in the background.</p>
 
-            <div ref={dragRef} className={`border-2 ${dragActive ? 'border-purple-400 bg-purple-50' : 'border-dashed border-gray-200 bg-white'} rounded-lg p-6 flex flex-col items-center justify-center gap-3`}> 
+            <div ref={dragRef} className={`border-2 transition-all duration-200 ${dragActive ? 'border-purple-400 bg-purple-50 scale-105' : 'border-dashed border-gray-200 bg-white'} rounded-lg p-6 flex flex-col items-center justify-center gap-3`}> 
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v10" stroke="#7C3AED" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 7l4-4 4 4" stroke="#7C3AED" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><rect x="3" y="13" width="18" height="8" rx="2" stroke="#D6BCFA" strokeWidth="1.2"/></svg>
               <div className="text-sm text-gray-700">Drag & drop a file here, or</div>
-              <label className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded cursor-pointer">
+              <label className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded shadow cursor-pointer hover:scale-105 transition-transform">
                 <input type="file" onChange={onFileChange} className="hidden" />
                 <span className="text-sm font-medium">Choose file</span>
               </label>
@@ -239,35 +242,42 @@ const SummarizePage: React.FC = () => {
                 <div className="h-3 bg-gradient-to-r from-purple-500 to-pink-500 transition-all" style={{ width: `${uploadProgress}%` }} />
               </div>
               <div className="flex items-center justify-between mt-2 text-sm">
-                <div className="text-gray-600">{uploading || uploadTaskId ? `${uploadProgress}% ${uploading ? 'uploading...' : 'processing...'}` : 'No active upload'}</div>
+                <div className="text-gray-600 flex items-center gap-2">
+                  {uploading && <Spinner className="inline-block mr-1" />}
+                  {uploading || uploadTaskId ? (
+                    uploadProgress === 100 && !uploading
+                      ? <span className="text-green-600 font-semibold">Document uploaded!</span>
+                      : `${uploadProgress}% ${uploading ? 'uploading...' : 'processing...'}`
+                  ) : 'No active upload'}
+                </div>
                 {uploadTaskId && <div className="text-xs text-gray-400">Task: {uploadTaskId.slice(0,8)}</div>}
               </div>
             </div>
           </div>
 
-          {/* Column 2: Documents list */}
-          <div className="bg-white border rounded-2xl p-6 shadow-lg flex flex-col">
+          {/* Section 2: Documents list */}
+          <div className="bg-white border rounded-2xl p-6 shadow-xl flex flex-col transition-shadow duration-300 hover:shadow-2xl animate-section" style={{ animationDelay: '0.08s' }}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">Your documents</h3>
               <div className="text-xs text-gray-400">Showing {filteredFiles.length} of {files.length}</div>
             </div>
 
             <div className="mb-3">
-              <input placeholder="Search documents" value={filter} onChange={(e) => setFilter(e.target.value)} className="w-full border rounded px-3 py-2 text-sm" />
+              <input placeholder="Search documents" value={filter} onChange={(e) => setFilter(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 transition" />
             </div>
 
-            <div className="flex-1 overflow-auto space-y-3">
+            <div className="flex-1 overflow-y-scroll space-y-3" style={{ maxHeight: '340px', minHeight: '180px' }}>
               {filteredFiles.length === 0 && <div className="text-sm text-gray-500">No documents yet.</div>}
               {filteredFiles.map((d: any) => (
                 <div key={d.id} className={`w-full p-0`}> 
-                  <div className={`w-full text-left p-3 rounded-md border flex flex-col ${selectedId === d.id ? 'border-purple-500 bg-purple-50 shadow-sm' : 'border-transparent hover:bg-gray-50'}`}>
+                  <div className={`w-full text-left p-3 rounded-md border flex flex-col transition-all duration-200 cursor-pointer ${selectedId === d.id ? 'border-purple-500 bg-purple-50 shadow-md scale-[1.01]' : 'border-transparent hover:bg-gray-50 hover:scale-[1.01]'}`}>
                     <div className="flex items-center justify-between">
-                      <button onClick={() => selectDocument(d.id)} className="text-left flex-1">
-                        <div className="font-medium text-sm">{d.title || `Document ${d.id}`}</div>
+                      <button onClick={() => selectDocument(d.id)} className="text-left flex-1 group">
+                        <div className="font-medium text-sm group-hover:text-purple-700 transition-colors">{d.title || `Document ${d.id}`}</div>
                         <div className="text-xs text-gray-500 mt-1">{d.created_at ? new Date(d.created_at).toLocaleString() : ''}</div>
                       </button>
                       <div className="flex items-center gap-2 ml-3">
-                        <button title="Delete" onClick={() => deleteDocument(d.id)} className="text-xs px-2 py-1 border rounded text-red-600">Delete</button>
+                        <button title="Delete" onClick={() => deleteDocument(d.id)} className="text-xs px-2 py-1 border rounded text-red-600 hover:bg-red-50 transition flex items-center gap-1"><FiTrash2 className="inline" /> Delete</button>
                       </div>
                     </div>
                     <div className="text-xs text-gray-400 mt-2">{d.file_type || ''}</div>
@@ -277,51 +287,68 @@ const SummarizePage: React.FC = () => {
             </div>
 
             {selectedDoc && (
-              <div className="mt-4 p-3 bg-gray-50 border rounded">
-                <div className="font-medium text-sm mb-2">Preview</div>
-                <div className="text-xs text-gray-700 max-h-28 overflow-auto whitespace-pre-wrap">{(selectedDoc && selectedDoc.content) ? selectedDoc.content.slice(0, 900) + (selectedDoc.content.length > 900 ? '…' : '') : 'No preview available'}</div>
+              <div className="mt-4 p-3 bg-gray-50 border rounded relative">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-medium text-sm">Preview</div>
+                  <button onClick={() => setPreviewExpanded((v) => !v)} className="text-xs flex items-center gap-1 px-2 py-1 border rounded hover:bg-purple-50 transition">
+                    {previewExpanded ? <><FiChevronUp />Collapse</> : <><FiChevronDown />Expand</>}
+                  </button>
+                </div>
+                <div className={`text-xs text-gray-700 overflow-auto whitespace-pre-wrap transition-all duration-300 ${previewExpanded ? 'max-h-96' : 'max-h-28'}`}>{(selectedDoc && selectedDoc.content) ? (previewExpanded ? selectedDoc.content : selectedDoc.content.slice(0, 900) + (selectedDoc.content.length > 900 ? '…' : '')) : 'No preview available'}</div>
               </div>
             )}
           </div>
 
-          {/* Column 3: QA */}
-          <div className="bg-white border rounded-2xl p-6 shadow-lg flex flex-col">
+          {/* Section 3: QA */}
+          <div className="bg-white border rounded-2xl p-6 shadow-xl flex flex-col transition-shadow duration-300 hover:shadow-2xl animate-section" style={{ animationDelay: '0.16s' }}>
             <h3 className="font-semibold mb-3">Ask the AI</h3>
             <div className="mb-3 text-sm text-gray-600">Selected document: <span className="font-medium">{selectedDoc ? (selectedDoc.title || `Doc ${selectedDoc.id}`) : 'None'}</span></div>
-            <textarea value={query} onChange={(e) => setQuery(e.target.value)} rows={4} className="w-full border rounded p-3 mb-3 text-sm" placeholder="Ask a question or request a summary for the selected document" />
-            <div className="flex gap-2 mb-3">
-              <button onClick={runQuery} disabled={loadingAnswer} className="px-4 py-2 bg-purple-600 text-white rounded shadow">{loadingAnswer ? 'Thinking…' : 'Ask'}</button>
-              <button onClick={() => { setQuery('Summarize the document'); setAnswer(''); }} className="px-4 py-2 border rounded">Reset</button>
-              <button onClick={() => { navigator.clipboard?.writeText(answer || ''); }} className="px-3 py-2 border rounded text-sm">Copy</button>
+            <textarea value={query} onChange={(e) => setQuery(e.target.value)} rows={4} className="w-full border rounded p-3 mb-3 text-sm focus:ring-2 focus:ring-purple-400 transition" placeholder="Ask a question or request a summary for the selected document" />
+            <div className="flex gap-2 mb-3 flex-wrap">
+              <button onClick={runQuery} disabled={loadingAnswer} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded shadow hover:scale-105 transition-transform flex items-center gap-2 min-w-[90px]">{loadingAnswer ? <Spinner className="inline-block" /> : null}{loadingAnswer ? 'Thinking…' : 'Ask'}</button>
+              <button onClick={() => { setQuery('Summarize the document'); setAnswer(''); }} className="px-4 py-2 border rounded hover:bg-gray-100 transition flex items-center gap-2"><span>Reset</span></button>
+              <button onClick={() => { navigator.clipboard?.writeText(answer || ''); }} className="px-3 py-2 border rounded text-sm hover:bg-gray-100 transition flex items-center gap-2"><FiCopy /> Copy</button>
             </div>
 
             <div className="mt-2 flex-1">
               <div className="font-medium mb-2">Answer</div>
               {dualInfo ? (
                 <div className="space-y-3">
-                  <div className="p-3 border rounded bg-white">
+                  <div className="p-3 border rounded bg-white animate-fadein">
                     <div className="text-xs text-gray-500 mb-1">Local model answer</div>
                     <div className="text-sm text-gray-800 whitespace-pre-wrap">{dualInfo.local_answer || '—'}</div>
                   </div>
 
-                  <div className="p-3 border rounded bg-white">
+                  <div className="p-3 border rounded bg-white animate-fadein">
                     <div className="text-xs text-gray-500 mb-1">GROQ model answer</div>
                     <div className="text-sm text-gray-800 whitespace-pre-wrap">{dualInfo.groq_answer || '—'}</div>
                   </div>
 
-                  <div className="p-3 border rounded bg-gray-50">
+                  <div className="p-3 border rounded bg-gray-50 animate-fadein">
                     <div className="text-xs text-gray-500 mb-1">Judge / Selection</div>
                     <div className="text-sm text-gray-800">Selected: <span className="font-medium">{dualInfo.selected_source}</span></div>
                     <div className="text-xs text-gray-600 mt-1">Reason: {dualInfo.selection_reason || 'N/A'}</div>
                   </div>
                 </div>
               ) : (
-                <div className="min-h-[160px] p-4 border rounded bg-gray-50 text-sm overflow-auto whitespace-pre-wrap">{answer || <span className="text-gray-400">No answer yet</span>}</div>
+                <div className="min-h-[160px] p-4 border rounded bg-gray-50 text-sm overflow-auto whitespace-pre-wrap animate-fadein">{loadingAnswer ? <Spinner className="inline-block" /> : (answer || <span className="text-gray-400">No answer yet</span>)}</div>
               )}
             </div>
           </div>
         </div>
       </div>
+      {/* Animations */}
+      <style>{`
+        .animate-fadein { animation: fadein 0.7s; }
+        @keyframes fadein { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+        .animate-section {
+          animation: sectionFadeIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @keyframes sectionFadeIn {
+          0% { opacity: 0; transform: scale(0.97) translateY(30px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
     </div>
   );
 };
