@@ -44,12 +44,16 @@ if USE_GROQ:
         import os
         groq_api_key = getattr(settings, 'groq_api_key', None) or os.getenv("GROQ_API_KEY")
         if groq_api_key:
-            groq_client = Groq(api_key=groq_api_key)
-            logger.info("GROQ client initialized for dual answers")
+            try:
+                groq_client = Groq(api_key=groq_api_key)
+                logger.info("GROQ client initialized for dual answers")
+            except TypeError as e:
+                logger.warning(f"GROQ initialization failed due to version incompatibility: {e} - running local models only")
+                groq_client = None
         else:
             logger.warning("GROQ_API_KEY not found - running local models only")
-    except ImportError:
-        logger.warning("GROQ package not installed - running local models only")
+    except (ImportError, Exception) as e:
+        logger.warning(f"GROQ package error - running local models only: {e}")
 
 # Use your existing ai_utils as primary system
 active_ai_utils = ai_utils
