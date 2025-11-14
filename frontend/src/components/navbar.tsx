@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { ApiService } from '../services/api';
 
 export default function Navbar() {
@@ -43,13 +44,16 @@ export default function Navbar() {
   return (
     <header className={`sticky top-0 z-50 transition-all duration-300 ${
       scrolled 
-        ? 'backdrop-blur-xl bg-slate-950/95 shadow-premium border-b border-slate-800' 
-        : 'backdrop-blur-sm bg-slate-950/70 shadow-sm border-b border-slate-800/50'
+        ? 'glass-navbar shadow-premium' 
+        : 'bg-transparent border-b border-transparent'
     }`}>
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo & Brand */}
-        <div className="flex items-center gap-3 hover-lift">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform">
+        <motion.div 
+          className="flex items-center gap-3 hover-lift"
+          whileHover={{ scale: 1.05 }}
+        >
+          <div className="w-11 h-11 rounded-xl bg-gradient-button flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform">
             <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -58,9 +62,9 @@ export default function Navbar() {
           </div>
           <div className="hidden sm:block">
             <div className="text-lg font-bold text-white font-display">IntelliDoc</div>
-            <div className="text-xs font-medium text-slate-400">AI Document Intelligence</div>
+            <div className="text-xs font-medium text-text-muted">AI Document Intelligence</div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-1">
@@ -74,13 +78,14 @@ export default function Navbar() {
             { to: '/support', label: 'Support' },
             { to: '/personal/contact', label: 'Contact' },
           ].map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/50 transition-all duration-200"
-            >
-              {item.label}
-            </Link>
+            <motion.div key={item.to} whileHover={{ scale: 1.05 }}>
+              <Link
+                to={item.to}
+                className="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-white rounded-lg hover:bg-navy-700/30 transition-all duration-200"
+              >
+                {item.label}
+              </Link>
+            </motion.div>
           ))}
         </nav>
 
@@ -88,49 +93,59 @@ export default function Navbar() {
         <div className="hidden lg:flex items-center gap-3">
           {!user ? (
             <>
-              <Link 
-                to="/login" 
-                className="px-5 py-2 text-sm font-semibold text-slate-300 hover:text-white border-2 border-slate-700 rounded-lg hover:border-slate-600 hover:bg-slate-800/30 transition-all duration-200"
-              >
-                Log in
-              </Link>
-              <Link 
-                to="/register"
-                className="px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 btn-premium"
-              >
-                Get Started
-              </Link>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link 
+                  to="/login" 
+                  className="px-5 py-2 text-sm font-semibold text-text-gray border-2 border-navy-700 rounded-lg hover:border-accent-blue hover:bg-navy-700/50 transition-all duration-200"
+                >
+                  Log in
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link 
+                  to="/register"
+                  className="px-5 py-2 text-sm font-semibold text-white bg-gradient-button rounded-lg shadow-md hover:shadow-glow-blue transition-all duration-200 btn-premium"
+                >
+                  Get Started
+                </Link>
+              </motion.div>
             </>
           ) : (
             <div className="relative">
-              <button
+              <motion.button
                 onClick={() => setUserMenuOpen((s) => !s)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-300 border-2 border-slate-700 rounded-lg hover:border-slate-600 hover:bg-slate-800/30 transition-all duration-200"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-gray border-2 border-navy-700 rounded-lg hover:border-accent-blue hover:bg-navy-700/30 transition-all duration-200"
                 aria-expanded={userMenuOpen}
+                whileHover={{ scale: 1.05 }}
               >
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500"></div>
+                <div className="w-6 h-6 rounded-full bg-gradient-button"></div>
                 <span className="hidden sm:inline">{user.name ?? user.email}</span>
-                <svg className="w-4 h-4 text-slate-400" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-4 h-4 text-text-muted" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-              </button>
+              </motion.button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-slate-900 border-2 border-slate-700 rounded-xl shadow-premium z-50 overflow-hidden">
+                <motion.div 
+                  className="absolute right-0 mt-2 w-48 glass-card z-50 overflow-hidden"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
                   <Link 
                     to="/personal" 
                     onClick={() => setUserMenuOpen(false)} 
-                    className="block px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+                    className="block px-4 py-3 text-sm font-medium text-text-gray hover:text-text-white hover:bg-navy-700/50 transition-colors"
                   >
                     Profile
                   </Link>
                   <button 
                     onClick={() => { setUserMenuOpen(false); logout(); }} 
-                    className="w-full text-left px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 border-t border-slate-700 transition-colors"
+                    className="w-full text-left px-4 py-3 text-sm font-medium text-text-gray hover:text-text-white border-t border-navy-700 hover:bg-navy-700/50 transition-colors"
                   >
                     Log out
                   </button>
-                </div>
+                </motion.div>
               )}
             </div>
           )}
