@@ -34,38 +34,40 @@ const PhoneMockup: React.FC<PhoneMockupProps> = ({ imageUrl = '/phone-demo.png' 
                 </div>
               </div>
 
-              {showImage ? (
-                <div className="w-full h-full relative pt-6">
-                  <img
-                    src={imageUrl}
-                    alt="AI Document Intelligence Demo"
-                    onError={() => setShowImage(false)}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-navy-primary/40"></div>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none pt-6">
-                    <div className="flex flex-col items-center gap-4 px-4 text-center">
-                      <div className="text-sm sm:text-base md:text-lg font-bold text-text-primary leading-tight max-w-[85%]">
-                        Your AI That Reads
-                      </div>
-                      <div className="text-xs sm:text-sm text-accent-neon-purple font-semibold">
-                        So You Don't Have To
-                      </div>
+              {/* Always show content - no image loading */}
+              <div className="w-full h-full relative pt-6 bg-gradient-to-br from-navy-secondary via-navy-primary to-navy-tertiary">
+                {/* Document Preview Visual */}
+                <div className="absolute inset-0 pt-10 px-4">
+                  <div className="w-full space-y-3">
+                    {/* Document Lines */}
+                    <div className="h-2 bg-gradient-to-r from-accent-neon-purple/40 to-accent-neon-cyan/40 rounded-full w-3/4"></div>
+                    <div className="h-2 bg-text-muted/20 rounded-full w-full"></div>
+                    <div className="h-2 bg-text-muted/20 rounded-full w-5/6"></div>
+                    <div className="h-2 bg-text-muted/20 rounded-full w-full"></div>
+                    <div className="h-2 bg-text-muted/20 rounded-full w-4/5"></div>
+                    
+                    <div className="pt-3">
+                      <div className="h-2 bg-text-muted/20 rounded-full w-full"></div>
+                      <div className="h-2 bg-text-muted/20 rounded-full w-3/4 mt-2"></div>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-navy-secondary to-navy-primary pt-6">
-                  <div className="text-center">
-                    <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-gradient-to-r from-accent-neon-purple to-accent-neon-cyan flex items-center justify-center shadow-lg shadow-accent-neon-purple/40">
-                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
+
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-navy-primary/60"></div>
+
+                {/* Premium Text Overlay */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="flex flex-col items-center gap-4 px-4 text-center">
+                    <div className="text-sm sm:text-base md:text-lg font-bold text-text-primary leading-tight max-w-[85%]">
+                      Your AI That Reads
                     </div>
-                    <div className="text-xs text-text-muted font-medium">Document Preview</div>
+                    <div className="text-xs sm:text-sm text-accent-neon-purple font-semibold">
+                      So You Don't Have To
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
 
               <div className="absolute left-1/2 transform -translate-x-1/2 top-1 w-28 h-5 bg-slate-950 rounded-b-3xl z-30 shadow-lg"></div>
               <div className="absolute inset-0 rounded-[28px] opacity-[0.18] bg-gradient-to-br from-white/60 to-transparent pointer-events-none z-10"></div>
