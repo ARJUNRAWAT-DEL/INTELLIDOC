@@ -44,27 +44,29 @@ export default function Navbar() {
   return (
     <header className={`sticky top-0 z-50 transition-all duration-300 ${
       scrolled 
-        ? 'backdrop-blur-xl bg-navy-primary/60 shadow-lg' 
-        : 'backdrop-blur-md bg-navy-primary/30'
+        ? 'backdrop-blur-xl bg-navy-primary/80' 
+        : 'backdrop-blur-md bg-navy-primary/50'
     }`}>
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo & Brand */}
-        <motion.div 
-          className="flex items-center gap-3 hover-lift"
-          whileHover={{ scale: 1.05 }}
-        >
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-r from-accent-neon-purple to-accent-neon-cyan flex items-center justify-center shadow-lg shadow-accent-neon-purple/40 transform hover:scale-110 transition-transform">
-            <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <div className="hidden sm:block">
-            <div className="text-lg font-bold text-white font-display">IntelliDoc</div>
-            <div className="text-xs font-medium text-text-muted">AI Document Intelligence</div>
-          </div>
-        </motion.div>
+        <Link to="/" className="flex items-center gap-3 no-underline">
+          <motion.div 
+            className="flex items-center gap-3"
+            whileHover={{ scale: 1.05 }}
+          >
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-r from-accent-neon-purple to-accent-neon-cyan flex items-center justify-center shadow-lg shadow-accent-neon-purple/40 transform hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="hidden sm:block">
+              <div className="text-lg font-bold text-white font-display">IntelliDoc</div>
+              <div className="text-xs font-medium text-text-muted">AI Document Intelligence</div>
+            </div>
+          </motion.div>
+        </Link>
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-1">
@@ -175,7 +177,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       <div
-        className={`lg:hidden bg-slate-900/95 backdrop-blur-sm border-t-2 border-slate-800 transform origin-top transition-all duration-300 ease-in-out ${
+        className={`lg:hidden bg-navy-primary/95 backdrop-blur-sm transform origin-top transition-all duration-300 ease-in-out ${
           open ? 'scale-y-100 opacity-100 pointer-events-auto' : 'scale-y-0 opacity-0 pointer-events-none'
         }`}
         aria-hidden={!open}
