@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="relative border-t border-navy-700 bg-gradient-to-b from-navy-900 via-navy-900 to-navy-800 mt-section-lg">
-      {/* Decorative blobs */}
-      <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-accent-blue/5 to-accent-purple/5 rounded-full blur-3xl pointer-events-none"></div>
+    <footer className="relative border-t border-navy-secondary/30 bg-gradient-to-b from-navy-primary via-navy-secondary to-navy-primary/80 mt-section-lg">
+      {/* Decorative blobs - Midnight Neon style */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-accent-neon-cyan/10 to-accent-neon-purple/5 rounded-full blur-3xl pointer-events-none"></div>
       
       <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between text-sm relative z-10">
         <motion.div 

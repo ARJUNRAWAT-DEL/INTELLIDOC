@@ -44,7 +44,7 @@ export default function Navbar() {
   return (
     <header className={`sticky top-0 z-50 transition-all duration-300 ${
       scrolled 
-        ? 'glass-navbar shadow-premium' 
+        ? 'backdrop-blur-xl bg-navy-primary/40 border-b border-accent-neon-purple/10 shadow-lg' 
         : 'bg-transparent border-b border-transparent'
     }`}>
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -53,7 +53,7 @@ export default function Navbar() {
           className="flex items-center gap-3 hover-lift"
           whileHover={{ scale: 1.05 }}
         >
-          <div className="w-11 h-11 rounded-xl bg-gradient-button flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-r from-accent-neon-purple to-accent-neon-cyan flex items-center justify-center shadow-lg shadow-accent-neon-purple/40 transform hover:scale-110 transition-transform">
             <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
