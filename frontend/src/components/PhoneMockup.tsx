@@ -35,42 +35,45 @@ const PhoneMockup: React.FC<PhoneMockupProps> = ({ imageUrl = '/phone-demo.png' 
               </div>
 
               {/* Always show content - no image loading */}
-              <div className="w-full h-full relative pt-6 bg-gradient-to-br from-navy-secondary via-navy-primary to-navy-tertiary">
+              <div className="w-full h-full relative pt-6 bg-gradient-to-br from-navy-secondary via-navy-primary to-navy-tertiary z-0">
                 {/* Document Preview Visual */}
-                <div className="absolute inset-0 pt-10 px-4">
+                <div className="absolute inset-0 pt-12 px-4 z-10">
                   <div className="w-full space-y-3">
                     {/* Document Lines */}
-                    <div className="h-2 bg-gradient-to-r from-accent-neon-purple/40 to-accent-neon-cyan/40 rounded-full w-3/4"></div>
-                    <div className="h-2 bg-text-muted/20 rounded-full w-full"></div>
-                    <div className="h-2 bg-text-muted/20 rounded-full w-5/6"></div>
-                    <div className="h-2 bg-text-muted/20 rounded-full w-full"></div>
-                    <div className="h-2 bg-text-muted/20 rounded-full w-4/5"></div>
+                    <div className="h-2.5 bg-gradient-to-r from-accent-neon-purple/60 to-accent-neon-cyan/50 rounded-full w-3/4"></div>
+                    <div className="h-2 bg-text-muted/30 rounded-full w-full"></div>
+                    <div className="h-2 bg-text-muted/30 rounded-full w-5/6"></div>
+                    <div className="h-2 bg-text-muted/30 rounded-full w-full"></div>
+                    <div className="h-2 bg-text-muted/30 rounded-full w-4/5"></div>
                     
                     <div className="pt-3">
-                      <div className="h-2 bg-text-muted/20 rounded-full w-full"></div>
-                      <div className="h-2 bg-text-muted/20 rounded-full w-3/4 mt-2"></div>
+                      <div className="h-2 bg-text-muted/30 rounded-full w-full"></div>
+                      <div className="h-2 bg-text-muted/30 rounded-full w-3/4 mt-2"></div>
                     </div>
                   </div>
                 </div>
 
                 {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-navy-primary/60"></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-navy-primary/60 z-20"></div>
 
                 {/* Premium Text Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="flex flex-col items-center gap-4 px-4 text-center">
-                    <div className="text-sm sm:text-base md:text-lg font-bold text-text-primary leading-tight max-w-[85%]">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                  <div className="flex flex-col items-center gap-3 px-4 text-center">
+                    <div className="text-xs sm:text-sm md:text-base font-bold text-text-primary leading-tight max-w-[85%]">
                       Your AI That Reads
                     </div>
-                    <div className="text-xs sm:text-sm text-accent-neon-purple font-semibold">
+                    <div className="text-[10px] sm:text-xs text-accent-neon-purple font-semibold">
                       So You Don't Have To
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="absolute left-1/2 transform -translate-x-1/2 top-1 w-28 h-5 bg-slate-950 rounded-b-3xl z-30 shadow-lg"></div>
-              <div className="absolute inset-0 rounded-[28px] opacity-[0.18] bg-gradient-to-br from-white/60 to-transparent pointer-events-none z-10"></div>
+              {/* Notch */}
+              <div className="absolute left-1/2 transform -translate-x-1/2 top-1 w-28 h-5 bg-slate-950 rounded-b-3xl z-40 shadow-lg"></div>
+              
+              {/* Glossy Highlight */}
+              <div className="absolute inset-0 rounded-[28px] opacity-[0.12] bg-gradient-to-br from-white/50 to-transparent pointer-events-none z-50"></div>
             </div>
           </div>
 

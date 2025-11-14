@@ -44,8 +44,8 @@ export default function Navbar() {
   return (
     <header className={`sticky top-0 z-50 transition-all duration-300 ${
       scrolled 
-        ? 'backdrop-blur-xl bg-navy-primary/40 border-b border-accent-neon-purple/10 shadow-lg' 
-        : 'bg-transparent border-b border-transparent'
+        ? 'backdrop-blur-xl bg-navy-primary/60 border-b border-accent-neon-purple/10 shadow-lg' 
+        : 'backdrop-blur-md bg-navy-primary/30 border-b border-navy-secondary/20'
     }`}>
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo & Brand */}
