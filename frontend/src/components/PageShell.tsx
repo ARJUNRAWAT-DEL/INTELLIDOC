@@ -39,7 +39,7 @@ const PageShell: React.FC<{children: React.ReactNode}> = ({children}) => {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-navy-secondary/5 to-navy-tertiary/10"></div>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-6 py-12 z-10">
+      <div className="relative z-10">
         {/* Content wrapper */}
         <motion.div
           initial={disableAnim ? { opacity: 1 } : { opacity: 0, y: 20 }}

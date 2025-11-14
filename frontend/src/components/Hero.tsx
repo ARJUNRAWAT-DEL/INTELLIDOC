@@ -27,7 +27,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative py-section-lg md:py-section-lg lg:py-section-lg overflow-hidden">
+    <section className="relative py-16 md:py-20 lg:py-24 overflow-hidden">
       {/* Animated background glows - Midnight Neon style */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-accent-neon-purple/30 to-glow-purple/25 rounded-full blur-3xl opacity-50 animate-float animation-delay-0 pointer-events-none"></div>
       <div className="absolute bottom-0 right-10 w-96 h-96 bg-gradient-to-br from-glow-cyan/25 to-accent-neon-purple/15 rounded-full blur-3xl opacity-40 animate-float animation-delay-2000 pointer-events-none"></div>
