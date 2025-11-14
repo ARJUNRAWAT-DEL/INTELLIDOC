@@ -67,6 +67,13 @@ body {
   position: relative;
 }
 
+#root {
+  min-height: 100vh;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ============ PREMIUM BUTTONS ============ */
 .button-primary {
   background: linear-gradient(90deg, #9A4DFF, #B566FF);
@@ -953,16 +960,6 @@ h1 {
   font-family: var(--display-font);
   letter-spacing: -0.02em;
   line-height: 0.98;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  font-family: 'Inter', sans-serif;
-  /* Demo: soft pink landing background */
-  background: linear-gradient(180deg, var(--demo-pink-1) 0%, var(--demo-pink-2) 40%, var(--demo-pink-3) 100%);
-  color: var(--text-900);
 }
 
 /* Primary accent used by components */
