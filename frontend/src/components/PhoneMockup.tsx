@@ -6,25 +6,25 @@ const PhoneMockup: React.FC = () => {
 
   useEffect(() => {
     const sequence = async () => {
-      // Step 1: Upload (0.8s)
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Step 1: Upload (1.5s)
+      await new Promise(resolve => setTimeout(resolve, 1500));
       setDemoStep('preview');
       
-      // Step 2: Preview (0.6s)
-      await new Promise(resolve => setTimeout(resolve, 600));
+      // Step 2: Preview (1.5s)
+      await new Promise(resolve => setTimeout(resolve, 1500));
       setDemoStep('analyzing');
       
-      // Step 3: Analyzing (1s)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Step 3: Analyzing (2s)
+      await new Promise(resolve => setTimeout(resolve, 2000));
       setDemoStep('summary');
       
-      // Step 4: Summary (2s) then loop
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Step 4: Summary (3.5s) then loop
+      await new Promise(resolve => setTimeout(resolve, 3500));
       setDemoStep('upload');
     };
 
     sequence();
-    const interval = setInterval(sequence, 5400); // Total loop time
+    const interval = setInterval(sequence, 10000); // Total loop time: 10s
     
     return () => clearInterval(interval);
   }, []);
