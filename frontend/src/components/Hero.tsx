@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ScreenshotCard from './ScreenshotCard';
-import callersDemo from '../assets/callers-demo.svg';
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -137,7 +136,7 @@ const Hero = () => {
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             >
               <div style={{ borderRadius: '24px', overflow: 'hidden' }}>
-                <ScreenshotCard imageSrc={callersDemo} title="AI Summarization" subtitle="In Action" />
+                <ScreenshotCard />
               </div>
             </motion.div>
           </motion.div>
