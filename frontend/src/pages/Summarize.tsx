@@ -214,124 +214,124 @@ const SummarizePage: React.FC = () => {
   };
 
   return (
-    <div className="py-12 px-2 sm:px-6 bg-gradient-to-b from-pink-50 to-white min-h-screen animate-fadein">
+    <div className="py-12 px-2 sm:px-6 min-h-screen animate-fadein">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-2">
-          <h2 className="text-4xl font-extrabold tracking-tight">Summarize & Ask — Upload your document</h2>
-          <div className="text-sm text-gray-600">{files.length} documents • {selectedDoc ? `Selected: ${selectedDoc.title}` : 'No document selected'}</div>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-2">
+          <h2 className="text-4xl font-extrabold tracking-tight text-text-primary">Summarize & Ask — <span className="text-gradient">Upload your document</span></h2>
+          <div className="text-sm text-text-muted">{files.length} documents • {selectedDoc ? `Selected: ${selectedDoc.title}` : 'No document selected'}</div>
         </div>
 
   <div className="flex flex-col gap-6">
           {/* Section 1: Upload */}
-          <div className="bg-white border rounded-2xl p-6 shadow-xl transition-shadow duration-300 hover:shadow-2xl animate-section">
-            <h3 className="font-semibold mb-3">Upload a document</h3>
-            <p className="text-sm text-gray-500 mb-4">Supported: PDF, DOCX, TXT. Uploads are processed in the background.</p>
+          <div className="glass-card backdrop-blur-xl border border-navy-secondary/30 rounded-2xl p-6 shadow-2xl transition-all duration-300 hover:border-accent-neon-purple/30 animate-section">
+            <h3 className="font-semibold mb-3 text-text-primary text-lg">Upload a document</h3>
+            <p className="text-sm text-text-muted mb-4">Supported: PDF, DOCX, TXT. Uploads are processed in the background.</p>
 
-            <div ref={dragRef} className={`border-2 transition-all duration-200 ${dragActive ? 'border-purple-400 bg-purple-50 scale-105' : 'border-dashed border-gray-200 bg-white'} rounded-lg p-6 flex flex-col items-center justify-center gap-3`}> 
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v10" stroke="#7C3AED" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 7l4-4 4 4" stroke="#7C3AED" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><rect x="3" y="13" width="18" height="8" rx="2" stroke="#D6BCFA" strokeWidth="1.2"/></svg>
-              <div className="text-sm text-gray-700">Drag & drop a file here, or</div>
-              <label className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded shadow cursor-pointer hover:scale-105 transition-transform">
+            <div ref={dragRef} className={`border-2 transition-all duration-200 ${dragActive ? 'border-accent-neon-purple bg-accent-neon-purple/10 scale-105' : 'border-dashed border-navy-secondary/50 bg-navy-tertiary/30'} rounded-lg p-6 flex flex-col items-center justify-center gap-3`}> 
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v10" stroke="#9A4DFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 7l4-4 4 4" stroke="#9A4DFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><rect x="3" y="13" width="18" height="8" rx="2" stroke="#4F9CFF" strokeWidth="1.2"/></svg>
+              <div className="text-sm text-text-secondary">Drag & drop a file here, or</div>
+              <label className="inline-flex items-center px-4 py-2 button-primary cursor-pointer hover:scale-105 transition-transform">
                 <input type="file" onChange={onFileChange} className="hidden" />
                 <span className="text-sm font-medium">Choose file</span>
               </label>
-              <div className="text-xs text-gray-400">Allowed: .pdf, .docx, .doc, .txt • Max {Math.round((1024*1024*25)/1024/1024)} MB</div>
+              <div className="text-xs text-text-muted">Allowed: .pdf, .docx, .doc, .txt • Max {Math.round((1024*1024*25)/1024/1024)} MB</div>
             </div>
 
             <div className="mt-4">
-              <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-                <div className="h-3 bg-gradient-to-r from-purple-500 to-pink-500 transition-all" style={{ width: `${uploadProgress}%` }} />
+              <div className="w-full bg-navy-tertiary/50 rounded-full h-3 overflow-hidden">
+                <div className="h-3 bg-gradient-to-r from-accent-neon-purple to-accent-neon-cyan transition-all" style={{ width: `${uploadProgress}%` }} />
               </div>
               <div className="flex items-center justify-between mt-2 text-sm">
-                <div className="text-gray-600 flex items-center gap-2">
+                <div className="text-text-secondary flex items-center gap-2">
                   {uploading && <Spinner className="inline-block mr-1" />}
                   {uploading || uploadTaskId ? (
                     uploadProgress === 100 && !uploading
-                      ? <span className="text-green-600 font-semibold">Document uploaded!</span>
+                      ? <span className="text-accent-neon-cyan font-semibold">Document uploaded!</span>
                       : `${uploadProgress}% ${uploading ? 'uploading...' : 'processing...'}`
                   ) : 'No active upload'}
                 </div>
-                {uploadTaskId && <div className="text-xs text-gray-400">Task: {uploadTaskId.slice(0,8)}</div>}
+                {uploadTaskId && <div className="text-xs text-text-muted">Task: {uploadTaskId.slice(0,8)}</div>}
               </div>
             </div>
           </div>
 
           {/* Section 2: Documents list */}
-          <div className="bg-white border rounded-2xl p-6 shadow-xl flex flex-col transition-shadow duration-300 hover:shadow-2xl animate-section" style={{ animationDelay: '0.08s' }}>
+          <div className="glass-card backdrop-blur-xl border border-navy-secondary/30 rounded-2xl p-6 shadow-2xl flex flex-col transition-all duration-300 hover:border-accent-neon-cyan/30 animate-section" style={{ animationDelay: '0.08s' }}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">Your documents</h3>
-              <div className="text-xs text-gray-400">Showing {filteredFiles.length} of {files.length}</div>
+              <h3 className="font-semibold text-text-primary text-lg">Your documents</h3>
+              <div className="text-xs text-text-muted">Showing {filteredFiles.length} of {files.length}</div>
             </div>
 
             <div className="mb-3">
-              <input placeholder="Search documents" value={filter} onChange={(e) => setFilter(e.target.value)} className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 transition" />
+              <input placeholder="Search documents" value={filter} onChange={(e) => setFilter(e.target.value)} className="w-full bg-navy-tertiary/50 border border-navy-secondary/50 rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-neon-purple/30 focus:border-accent-neon-purple/50 transition" />
             </div>
 
             <div className="flex-1 overflow-y-scroll space-y-3" style={{ maxHeight: '340px', minHeight: '180px' }}>
-              {filteredFiles.length === 0 && <div className="text-sm text-gray-500">No documents yet.</div>}
+              {filteredFiles.length === 0 && <div className="text-sm text-text-muted">No documents yet.</div>}
               {filteredFiles.map((d: any) => (
                 <div key={d.id} className={`w-full p-0`}> 
-                  <div className={`w-full text-left p-3 rounded-md border flex flex-col transition-all duration-200 cursor-pointer ${selectedId === d.id ? 'border-purple-500 bg-purple-50 shadow-md scale-[1.01]' : 'border-transparent hover:bg-gray-50 hover:scale-[1.01]'}`}>
+                  <div className={`w-full text-left p-3 rounded-xl border flex flex-col transition-all duration-200 cursor-pointer ${selectedId === d.id ? 'border-accent-neon-purple bg-accent-neon-purple/10 shadow-lg shadow-accent-neon-purple/20 scale-[1.01]' : 'border-navy-secondary/30 hover:bg-navy-tertiary/30 hover:border-accent-neon-cyan/30 hover:scale-[1.01]'}`}>
                     <div className="flex items-center justify-between">
                       <button onClick={() => selectDocument(d.id)} className="text-left flex-1 group">
-                        <div className="font-medium text-sm group-hover:text-purple-700 transition-colors">{d.title || `Document ${d.id}`}</div>
-                        <div className="text-xs text-gray-500 mt-1">{d.created_at ? new Date(d.created_at).toLocaleString() : ''}</div>
+                        <div className="font-medium text-sm text-text-primary group-hover:text-accent-neon-purple transition-colors">{d.title || `Document ${d.id}`}</div>
+                        <div className="text-xs text-text-muted mt-1">{d.created_at ? new Date(d.created_at).toLocaleString() : ''}</div>
                       </button>
                       <div className="flex items-center gap-2 ml-3">
-                        <button title="Delete" onClick={() => deleteDocument(d.id)} className="text-xs px-2 py-1 border rounded text-red-600 hover:bg-red-50 transition flex items-center gap-1"><FiTrash2 className="inline" /> Delete</button>
+                        <button title="Delete" onClick={() => deleteDocument(d.id)} className="text-xs px-2 py-1 border border-red-500/50 rounded text-red-400 hover:bg-red-500/10 hover:border-red-500 transition flex items-center gap-1"><FiTrash2 className="inline" /> Delete</button>
                       </div>
                     </div>
-                    <div className="text-xs text-gray-400 mt-2">{d.file_type || ''}</div>
+                    <div className="text-xs text-text-muted mt-2">{d.file_type || ''}</div>
                   </div>
                 </div>
               ))}
             </div>
 
             {selectedDoc && (
-              <div className="mt-4 p-3 bg-gray-50 border rounded relative">
+              <div className="mt-4 p-3 bg-navy-tertiary/30 border border-navy-secondary/50 rounded-xl relative">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium text-sm">Preview</div>
-                  <button onClick={() => setPreviewExpanded((v) => !v)} className="text-xs flex items-center gap-1 px-2 py-1 border rounded hover:bg-purple-50 transition">
+                  <div className="font-medium text-sm text-text-primary">Preview</div>
+                  <button onClick={() => setPreviewExpanded((v) => !v)} className="text-xs flex items-center gap-1 px-2 py-1 border border-navy-secondary/50 rounded text-text-secondary hover:bg-accent-neon-purple/10 hover:border-accent-neon-purple/50 transition">
                     {previewExpanded ? <><FiChevronUp />Collapse</> : <><FiChevronDown />Expand</>}
                   </button>
                 </div>
-                <div className={`text-xs text-gray-700 overflow-auto whitespace-pre-wrap transition-all duration-300 ${previewExpanded ? 'max-h-96' : 'max-h-28'}`}>{(selectedDoc && selectedDoc.content) ? (previewExpanded ? selectedDoc.content : selectedDoc.content.slice(0, 900) + (selectedDoc.content.length > 900 ? '…' : '')) : 'No preview available'}</div>
+                <div className={`text-xs text-text-secondary overflow-auto whitespace-pre-wrap transition-all duration-300 ${previewExpanded ? 'max-h-96' : 'max-h-28'}`}>{(selectedDoc && selectedDoc.content) ? (previewExpanded ? selectedDoc.content : selectedDoc.content.slice(0, 900) + (selectedDoc.content.length > 900 ? '…' : '')) : 'No preview available'}</div>
               </div>
             )}
           </div>
 
           {/* Section 3: QA */}
-          <div className="bg-white border rounded-2xl p-6 shadow-xl flex flex-col transition-shadow duration-300 hover:shadow-2xl animate-section" style={{ animationDelay: '0.16s' }}>
-            <h3 className="font-semibold mb-3">Ask the AI</h3>
-            <div className="mb-3 text-sm text-gray-600">Selected document: <span className="font-medium">{selectedDoc ? (selectedDoc.title || `Doc ${selectedDoc.id}`) : 'None'}</span></div>
-            <textarea value={query} onChange={(e) => setQuery(e.target.value)} rows={4} className="w-full border rounded p-3 mb-3 text-sm focus:ring-2 focus:ring-purple-400 transition" placeholder="Ask a question or request a summary for the selected document" />
+          <div className="glass-card backdrop-blur-xl border border-navy-secondary/30 rounded-2xl p-6 shadow-2xl flex flex-col transition-all duration-300 hover:border-accent-neon-purple/30 animate-section" style={{ animationDelay: '0.16s' }}>
+            <h3 className="font-semibold mb-3 text-text-primary text-lg">Ask the AI</h3>
+            <div className="mb-3 text-sm text-text-muted">Selected document: <span className="font-medium text-text-primary">{selectedDoc ? (selectedDoc.title || `Doc ${selectedDoc.id}`) : 'None'}</span></div>
+            <textarea value={query} onChange={(e) => setQuery(e.target.value)} rows={4} className="w-full bg-navy-tertiary/50 border border-navy-secondary/50 rounded-xl p-3 mb-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-neon-purple/30 focus:border-accent-neon-purple/50 transition" placeholder="Ask a question or request a summary for the selected document" />
             <div className="flex gap-2 mb-3 flex-wrap">
-              <button onClick={runQuery} disabled={loadingAnswer} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded shadow hover:scale-105 transition-transform flex items-center gap-2 min-w-[90px]">{loadingAnswer ? <Spinner className="inline-block" /> : null}{loadingAnswer ? 'Thinking…' : 'Ask'}</button>
-              <button onClick={() => { setQuery('Summarize the document'); setAnswer(''); }} className="px-4 py-2 border rounded hover:bg-gray-100 transition flex items-center gap-2"><span>Reset</span></button>
-              <button onClick={() => { navigator.clipboard?.writeText(answer || ''); }} className="px-3 py-2 border rounded text-sm hover:bg-gray-100 transition flex items-center gap-2"><FiCopy /> Copy</button>
+              <button onClick={runQuery} disabled={loadingAnswer} className="px-4 py-2 button-primary hover:scale-105 transition-transform flex items-center gap-2 min-w-[90px]">{loadingAnswer ? <Spinner className="inline-block" /> : null}{loadingAnswer ? 'Thinking…' : 'Ask'}</button>
+              <button onClick={() => { setQuery('Summarize the document'); setAnswer(''); }} className="px-4 py-2 border border-navy-secondary/50 rounded-lg text-text-secondary hover:bg-navy-tertiary/30 hover:border-accent-neon-cyan/50 transition flex items-center gap-2"><span>Reset</span></button>
+              <button onClick={() => { navigator.clipboard?.writeText(answer || ''); }} className="px-3 py-2 border border-navy-secondary/50 rounded-lg text-sm text-text-secondary hover:bg-navy-tertiary/30 hover:border-accent-neon-cyan/50 transition flex items-center gap-2"><FiCopy /> Copy</button>
             </div>
 
             <div className="mt-2 flex-1">
-              <div className="font-medium mb-2">Answer</div>
+              <div className="font-medium mb-2 text-text-primary">Answer</div>
               {dualInfo ? (
                 <div className="space-y-3">
-                  <div className="p-3 border rounded bg-white animate-fadein">
-                    <div className="text-xs text-gray-500 mb-1">Local model answer</div>
-                    <div className="text-sm text-gray-800 whitespace-pre-wrap">{dualInfo.local_answer || '—'}</div>
+                  <div className="p-3 border border-navy-secondary/50 rounded-xl bg-navy-tertiary/30 animate-fadein">
+                    <div className="text-xs text-text-muted mb-1">Local model answer</div>
+                    <div className="text-sm text-text-primary whitespace-pre-wrap">{dualInfo.local_answer || '—'}</div>
                   </div>
 
-                  <div className="p-3 border rounded bg-white animate-fadein">
-                    <div className="text-xs text-gray-500 mb-1">GROQ model answer</div>
-                    <div className="text-sm text-gray-800 whitespace-pre-wrap">{dualInfo.groq_answer || '—'}</div>
+                  <div className="p-3 border border-navy-secondary/50 rounded-xl bg-navy-tertiary/30 animate-fadein">
+                    <div className="text-xs text-text-muted mb-1">GROQ model answer</div>
+                    <div className="text-sm text-text-primary whitespace-pre-wrap">{dualInfo.groq_answer || '—'}</div>
                   </div>
 
-                  <div className="p-3 border rounded bg-gray-50 animate-fadein">
-                    <div className="text-xs text-gray-500 mb-1">Judge / Selection</div>
-                    <div className="text-sm text-gray-800">Selected: <span className="font-medium">{dualInfo.selected_source}</span></div>
-                    <div className="text-xs text-gray-600 mt-1">Reason: {dualInfo.selection_reason || 'N/A'}</div>
+                  <div className="p-3 border border-accent-neon-purple/30 rounded-xl bg-accent-neon-purple/10 animate-fadein">
+                    <div className="text-xs text-text-muted mb-1">Judge / Selection</div>
+                    <div className="text-sm text-text-primary">Selected: <span className="font-medium text-accent-neon-purple">{dualInfo.selected_source}</span></div>
+                    <div className="text-xs text-text-secondary mt-1">Reason: {dualInfo.selection_reason || 'N/A'}</div>
                   </div>
                 </div>
               ) : (
-                <div className="min-h-[160px] p-4 border rounded bg-gray-50 text-sm overflow-auto whitespace-pre-wrap animate-fadein">{loadingAnswer ? <Spinner className="inline-block" /> : (answer || <span className="text-gray-400">No answer yet</span>)}</div>
+                <div className="min-h-[160px] p-4 border border-navy-secondary/50 rounded-xl bg-navy-tertiary/30 text-sm overflow-auto whitespace-pre-wrap animate-fadein text-text-primary">{loadingAnswer ? <Spinner className="inline-block" /> : (answer || <span className="text-text-muted">No answer yet</span>)}</div>
               )}
             </div>
           </div>
