@@ -44,9 +44,10 @@ export default function Navbar() {
   return (
     <header className={`sticky top-0 z-50 transition-all duration-300 ${
       scrolled 
-        ? 'backdrop-blur-xl bg-navy-primary/80' 
+        ? 'backdrop-blur-xl bg-navy-primary/85 border-b border-white/[0.06]' 
         : 'backdrop-blur-md bg-navy-primary/50'
-    }`}>
+    }`}
+    style={scrolled ? { boxShadow: '0 1px 30px rgba(0,0,0,0.4)' } : {}}>
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo & Brand */}
         <Link to="/" className="flex items-center gap-3 no-underline">

@@ -1,225 +1,156 @@
-import { useEffect, useState } from 'react';
+import PageShell from '../components/PageShell';
+import ParallaxSection from '../components/ParallaxSection';
+import InteractiveSlider from '../components/InteractiveSlider';
+import InteractiveExploration from '../components/InteractiveExploration';
+import InteractiveFeaturesShowcase from '../components/InteractiveFeaturesShowcase';
+import SocialProof from '../components/SocialProof';
+import FAQSection from '../components/FAQSection';
+import StickyCTA from '../components/StickyCTA';
+import { motion } from 'framer-motion';
 
-interface Props {
-  modal?: boolean;
-  isOpen?: boolean;
-  onClose?: () => void;
-}
-
-// Per-step SVG icons (document-focused style)
-function StepIcon({ index }: { index: number }) {
-  if (index === 0) {
-    // Upload icon
-    return (
-      <div className="flex items-center justify-center mb-4">
-        <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-float">
-          <rect x="6" y="14" width="60" height="44" rx="8" fill="#ECFDF5" stroke="#D1FAE5" />
-          <path d="M36 20v20" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M28 28l8-8 8 8" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-    );
-  }
-  if (index === 1) {
-    // Search icon
-    return (
-      <div className="flex items-center justify-center mb-4">
-        <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-float">
-          <circle cx="32" cy="32" r="18" fill="#F5F3FF" stroke="#E9D5FF" />
-          <path d="M44 44l12 12" stroke="#7C3AED" strokeWidth="3" strokeLinecap="round" />
-          <rect x="16" y="16" width="6" height="6" rx="1" fill="#7C3AED" />
-        </svg>
-      </div>
-    );
-  }
-  // index === 2 Answer icon
+export default function HowItWorks() {
   return (
-    <div className="flex items-center justify-center mb-4">
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-float">
-        <rect x="8" y="12" width="56" height="48" rx="8" fill="#FFF1F2" stroke="#FDE2EC" />
-        <path d="M22 26h28" stroke="#DB2777" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M22 34h20" stroke="#DB2777" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="50" cy="44" r="4" fill="#DB2777" />
-      </svg>
-    </div>
-  );
-}
-
-// Inline professional SVG (document-focused) used in right column
-function DocumentHeroSVG() {
-  return (
-    <div className="w-full flex items-center justify-center">
-      <svg viewBox="0 0 240 240" width="220" height="220" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="g1" x1="0" x2="1">
-            <stop offset="0%" stopColor="#06B6D4" />
-            <stop offset="100%" stopColor="#7C3AED" />
-          </linearGradient>
-        </defs>
-        <rect x="14" y="34" width="160" height="120" rx="12" fill="#F8FAFC" stroke="#E6EEF3" />
-        <path d="M28 52h128" stroke="#CBD5E1" strokeWidth="3" strokeLinecap="round" />
-        <path d="M28 72h96" stroke="#94A3B8" strokeWidth="3" strokeLinecap="round" />
-        <g transform="translate(120, 28)">
-          <circle cx="48" cy="48" r="36" fill="url(#g1)" opacity="0.12" />
-          <path d="M36 44h24M36 56h12" stroke="#0EA5A4" strokeWidth="3" strokeLinecap="round" />
-          <rect x="6" y="86" width="84" height="36" rx="6" fill="#fff" stroke="#E6EEF3" />
-        </g>
-        <g transform="translate(28, 160)">
-          <rect x="0" y="0" width="184" height="40" rx="8" fill="#fff" stroke="#E6EEF3" />
-          <path d="M12 12h60" stroke="#94A3B8" strokeWidth="3" strokeLinecap="round" />
-          <path d="M12 26h100" stroke="#CBD5E1" strokeWidth="3" strokeLinecap="round" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-export default function HowItWorks(props: Props) {
-  const { modal = false, isOpen = true, onClose } = props;
-  const [step, setStep] = useState(0);
-  const [query, setQuery] = useState('Summarize the attached contract in 2 bullet points');
-  const [answer, setAnswer] = useState('');
-  const [LottieComp, setLottieComp] = useState<any>(null);
-  const [animData, setAnimData] = useState<any>(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => setStep(s => (s + 1) % 3), 4000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    // try to dynamically import lottie-react; if unavailable, fail silently
-    let mounted = true;
-    // Avoid Vite's static analysis by constructing the package name at runtime
-    // so the dev server won't pre-resolve this optional dependency.
-    const _pkg: any = 'lottie' + '-react';
-    // use Vite ignore comment to suppress analysis warning for this dynamic import
-    // the import will be attempted at runtime; if the package isn't installed it will fail and be ignored
-    import(/* @vite-ignore */ _pkg)
-      .then((mod) => { if (mounted) setLottieComp(() => mod.default); })
-      .catch(() => { /* optional dependency - ignore */ });
-    // fetch a small Lottie json from public CDN (will fail if offline)
-    fetch('https://assets6.lottiefiles.com/packages/lf20_touohxv0.json')
-      .then(r => r.json())
-      .then(j => { if (mounted) setAnimData(j); })
-      .catch(() => { /* ignore */ });
-    return () => { mounted = false; };
-  }, []);
-
-  // lock body scroll when modal is open
-  useEffect(() => {
-    if (!modal) return;
-    if (isOpen) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = prev; };
-    }
-  }, [modal, isOpen]);
-
-  const runExample = async () => {
-    setAnswer('');
-    const simulated = '• Key obligation: Payment due within 30 days.\n• Term: Automatic renewal unless terminated.';
-    let i = 0;
-    const t = setInterval(() => {
-      i += 1;
-      setAnswer(simulated.slice(0, i));
-      if (i >= simulated.length) clearInterval(t);
-    }, 20);
-  };
-
-  const content = (
-    <div className="max-w-5xl mx-auto bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-premium border border-slate-700 overflow-hidden">
-      <header className="p-6 border-b border-slate-700 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white font-display">How IntelliDoc Works</h1>
-          <p className="mt-1 text-sm text-slate-400">A short guided tour with animations and a small interactive example.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {LottieComp && animData ? (
-            // @ts-ignore - dynamic component
-            <LottieComp animationData={animData} loop={true} style={{ width: 120, height: 120 }} />
-          ) : (
-            <div className="w-28 h-28 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-lg flex items-center justify-center text-sm text-slate-300 font-semibold border border-slate-700">Demo</div>
-          )}
-          {modal && <button onClick={onClose} className="px-3 py-2 rounded-md bg-slate-700 text-white hover:bg-slate-600">Close</button>}
-        </div>
-      </header>
-
-      <main className="p-6 space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: main content spans two columns on large screens */}
-          <div className="lg:col-span-2 space-y-6">
-            <section>
-              <h2 className="text-lg font-bold text-white mb-3 font-display">At a glance</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[0,1,2].map(i => (
-                  <div key={i} className={`p-6 rounded-xl border transition-all animate-slide-in ${step === i ? 'shadow-premium scale-105 border-blue-400 bg-slate-700/50' : 'border-slate-700 bg-slate-800/50'}`} style={{ animationDelay: `${i * 120}ms` }}>
-                    <StepIcon index={i} />
-                    <div className="text-sm font-semibold text-white mb-1">{i===0 ? 'Upload' : i===1 ? 'Search' : 'Answer'}</div>
-                    <p className="text-sm text-slate-400">{i===0 ? 'Drag & drop PDFs, Word docs — IntelliDoc extracts text.' : i===1 ? 'Ask natural-language questions — embeddings find relevant passages.' : 'Receive concise, sourced answers with links back to documents.'}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-bold text-white mb-3 font-display">Interactive example</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl border border-slate-700 bg-slate-800/50">
-                  <div className="text-sm text-slate-400 mb-2">Example query</div>
-                  <textarea value={query} onChange={(e) => setQuery(e.target.value)} className="w-full p-2 rounded-md border border-slate-600 bg-slate-900 text-white h-28 focus:border-blue-500 focus:outline-none" />
-                  <div className="mt-3 flex gap-2">
-                    <button onClick={runExample} className="px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md text-sm hover:from-blue-500 hover:to-indigo-500 font-semibold">Run query</button>
-                    <button onClick={() => { setQuery('Find all clauses about termination and summarize in 3 bullets'); setAnswer(''); }} className="px-3 py-2 border border-slate-600 text-slate-300 rounded-md text-sm hover:border-slate-500 hover:bg-slate-800">Load example</button>
-                  </div>
-                  <div className="mt-2 text-xs text-slate-500">This demo is local and simulates the real answer.</div>
-                </div>
-
-                <div className="p-4 rounded-xl border border-slate-700 bg-slate-800/50 flex flex-col">
-                  <div className="text-sm text-slate-400 mb-2">AI answer</div>
-                  <div className="flex-1 bg-slate-900 p-3 rounded-md border border-dashed border-slate-600 overflow-auto whitespace-pre-wrap text-slate-200">{answer || <span className="text-slate-500">Run the example to see a simulated answer appear here.</span>}</div>
-                  <div className="mt-2 text-xs text-slate-500">Real answers include document sources and timestamps.</div>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          {/* Right: professional document-focused illustration */}
-          <aside className="hidden lg:flex lg:flex-col lg:items-center lg:justify-start">
-            <div className="w-full p-6">
-              <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 shadow-premium border border-slate-700 animate-pulse-soft">
-                <DocumentHeroSVG />
-                <h3 className="mt-4 text-lg font-bold text-white font-display">Document intelligence</h3>
-                <p className="mt-2 text-sm text-slate-300">Visualize how IntelliDoc extracts, indexes and surfaces answers from your documents.</p>
-              </div>
+    <StickyCTA>
+      <PageShell>
+          {/* Hero Section */}
+          <motion.section 
+            className="relative pt-24 pb-12 md:pt-32 md:pb-16 overflow-hidden bg-gradient-to-b from-navy-primary to-navy-secondary"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-10 left-10 w-72 h-72 bg-gradient-to-br from-accent-neon-purple/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
+              <div className="absolute bottom-10 right-10 w-72 h-72 bg-gradient-to-tl from-accent-neon-cyan/20 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
             </div>
-          </aside>
-        </div>
-      </main>
-    </div>
-  );
 
-  if (modal) {
-    if (!isOpen) return null;
-    return (
-      <div className="fixed inset-0 z-50 flex items-start justify-center py-12">
-        <div onClick={onClose} className="absolute inset-0 bg-black/40" />
-        {/* Modal shell: allow scrolling inside modal and limit height */}
-        <div className="relative w-full max-w-5xl mx-4 max-h-[85vh] overflow-auto rounded-lg">{content}</div>
-        <style>{`
-          @keyframes float { 0% { transform: translateY(0) } 50% { transform: translateY(-6px) } 100% { transform: translateY(0) } }
-          @keyframes pulse { 0% { transform: scale(1); opacity: .95 } 50% { transform: scale(1.02); opacity: 1 } 100% { transform: scale(1); opacity: .95 } }
-          @keyframes slide-in { from { transform: translateY(8px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
-          .animate-float { animation: float 4s ease-in-out infinite; }
-          .animate-pulse-soft { animation: pulse 3s ease-in-out infinite; }
-          .animate-slide-in { animation: slide-in .45s cubic-bezier(.2,.8,.2,1) both; }
-        `}</style>
-      </div>
-    );
+            <div className="relative max-w-6xl mx-auto px-6 lg:px-8 z-10">
+              <motion.div 
+                className="text-center mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+              >
+                <h1 className="text-display-xl font-display font-black text-text-primary mb-6">
+                  How <span className="text-gradient">IntelliDoc Works</span>
+                </h1>
+                <p className="text-body-xl text-text-secondary max-w-2xl mx-auto">
+                  A modern platform built for an immersive document intelligence experience. Explore interactive features that make document analysis intuitive, fast, and powerful.
+                </p>
+              </motion.div>
 
-  }
+              {/* Quick Stats */}
+              <motion.div 
+                className="grid grid-cols-3 gap-4 md:gap-8 mt-12"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                {[
+                  { label: 'Documents', value: '10K+' },
+                  { label: 'Processing', value: '<2s' },
+                  { label: 'Accuracy', value: '98%' },
+                ].map((stat, idx) => (
+                  <motion.div 
+                    key={idx}
+                    className="p-4 rounded-xl bg-glass-card border border-navy-secondary/30 text-center"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-accent-neon-purple to-accent-neon-cyan">{stat.value}</p>
+                    <p className="text-sm text-text-secondary mt-1">{stat.label}</p>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+          </motion.section>
 
-  return (
-    <div>{content}</div>
+          {/* Interactive Features Showcase */}
+          <InteractiveFeaturesShowcase />
+
+          {/* How It Works - Step by Step */}
+          <ParallaxSection />
+
+          {/* Interactive Exploration */}
+          <InteractiveExploration />
+
+          {/* Features Slider */}
+          <InteractiveSlider />
+
+          {/* Social Proof Section */}
+          <SocialProof />
+
+          {/* FAQ Section */}
+          <FAQSection />
+
+          {/* CTA Section */}
+          <motion.section 
+            className="relative py-20 md:py-32 overflow-hidden bg-gradient-to-b from-navy-primary to-navy-secondary"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+          >
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-gradient-to-br from-accent-neon-purple/20 to-transparent rounded-full blur-3xl -translate-y-1/2"></div>
+            </div>
+
+            <div className="relative max-w-4xl mx-auto px-6 lg:px-8 z-10">
+              <motion.div 
+                className="text-center"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+              >
+                <h2 className="text-display-md font-display font-black text-text-primary mb-6">
+                  Ready to Transform Your <span className="text-gradient">Document Workflow</span>?
+                </h2>
+                <p className="text-body-lg text-text-secondary mb-8 max-w-2xl mx-auto">
+                  Join thousands of users who are saving hours every week with AI-powered document intelligence. Start your free trial today.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <motion.button
+                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-accent-neon-purple to-accent-neon-cyan text-white font-semibold hover:shadow-2xl transition-shadow"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Start Free Trial
+                  </motion.button>
+                  <motion.button
+                    className="px-8 py-4 rounded-xl border border-accent-neon-purple/30 text-accent-neon-purple font-semibold hover:bg-glass-hover transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Schedule Demo
+                  </motion.button>
+                </div>
+
+                {/* Trust indicators */}
+                <motion.div
+                  className="mt-12 flex flex-wrap justify-center gap-6 text-sm text-text-secondary"
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  viewport={{ once: true }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-400">✓</span>
+                    <span>No credit card required</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-400">✓</span>
+                    <span>14-day free trial</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-400">✓</span>
+                    <span>Cancel anytime</span>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </div>
+          </motion.section>
+        </PageShell>
+    </StickyCTA>
   );
 }

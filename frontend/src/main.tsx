@@ -26,6 +26,7 @@ import OauthCallback from "./pages/OauthCallback";
 import Navbar from "./components/navbar";
 import Footer from "./components/Footer";
 import PageShell from "./components/PageShell";
+import ProfessionalBackground from "./components/ProfessionalBackground";
 import "./index.css";
 import { useEffect, useState } from "react";
 import OnboardingModal from "./components/OnboardingModal";
@@ -41,6 +42,7 @@ function RootApp() {
 
   return (
     <>
+      <ProfessionalBackground />
       <Navbar />
       <PageShell>
         <Routes>
