@@ -37,21 +37,8 @@ const Hero = () => {
   return (
     <section className="relative py-20 md:py-28 lg:py-32 overflow-hidden">
       {/* === LAYER 1: Background Glows === */}
-      {/* Soft blue glow behind heading (left side) */}
-      <motion.div
-        className="absolute -top-32 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"
-        animate={{ y: [0, -20, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ opacity: 0.15 }}
-      />
-
-      {/* Soft purple glow behind phone mockup (right side) */}
-      <motion.div
-        className="absolute -top-20 right-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"
-        animate={{ y: [0, 20, 0], x: [0, -15, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-        style={{ opacity: 0.12 }}
-      />
+      <div className="absolute -top-32 left-1/4 w-96 h-96 bg-indigo-500/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-20 right-0 w-96 h-96 bg-violet-500/6 rounded-full blur-3xl pointer-events-none" />
 
       {/* === LAYER 2: Subtle Grain Texture === */}
       <div
@@ -73,18 +60,13 @@ const Hero = () => {
             initial="hidden"
             animate="visible"
           >
-            {/* Badge - simple and clean */}
+            {/* Badge */}
             <motion.div 
               variants={itemVariants}
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/30 hover:border-indigo-500/60 transition-colors"
-              whileHover={{ scale: 1.05 }}
+              className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/30 hover:border-indigo-500/50 transition-colors"
             >
-              <motion.span 
-                className="w-2 h-2 bg-indigo-400 rounded-full"
-                animate={{ scale: [1, 1.3, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-              <span className="text-sm font-semibold text-indigo-300">Trusted by legal teams & enterprises</span>
+              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" />
+              <span className="text-sm font-medium text-indigo-300 tracking-wide">Trusted by legal teams & enterprises</span>
             </motion.div>
 
             {/* === Main Heading with Gradient Animation === */}
@@ -127,33 +109,20 @@ const Hero = () => {
               {/* Primary Button with Glow & Arrow Animation */}
               <motion.button 
                 onClick={() => navigate('/summarize')}
-                className="group relative px-8 py-4 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold overflow-hidden"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="group relative px-8 py-4 rounded-lg bg-indigo-600 text-white font-semibold overflow-hidden hover:bg-indigo-500 transition-colors duration-200"
+                whileTap={{ scale: 0.97 }}
               >
-                {/* Outer glow on hover */}
-                <motion.div
-                  className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-400 to-purple-400 opacity-0 blur-lg"
-                  animate={{ opacity: [0, 0, 0] }}
-                  whileHover={{ opacity: [0, 0.5, 0], transition: { duration: 1, repeat: Infinity } }}
-                />
                 {/* Button content */}
                 <span className="relative flex items-center gap-2">
                   Try for Free
-                  <motion.span
-                    animate={{ x: [0, 4, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    →
-                  </motion.span>
+                  <span>→</span>
                 </span>
               </motion.button>
               
               {/* Secondary Button - Glass Style */}
               <motion.button 
-                className="px-8 py-4 rounded-lg backdrop-blur-md bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 hover:border-indigo-400/40 transition-all"
-                whileHover={{ scale: 1.05, borderColor: 'rgba(99, 102, 241, 0.4)' }}
-                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 rounded-lg backdrop-blur-md bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/8 hover:border-indigo-400/35 transition-all duration-200"
+                whileTap={{ scale: 0.97 }}
               >
                 Watch Demo
               </motion.button>
@@ -184,18 +153,6 @@ const Hero = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            {/* Pulse Ring Effect (Bold Creative Element) */}
-            <motion.div
-              className="absolute w-96 h-96 rounded-full border border-purple-500/20 pointer-events-none"
-              animate={{ scale: [1, 1.2, 1.3], opacity: [0.5, 0.2, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            />
-            <motion.div
-              className="absolute w-80 h-80 rounded-full border border-purple-500/30 pointer-events-none"
-              animate={{ scale: [1, 1.15, 1.25], opacity: [0.6, 0.3, 0] }}
-              transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
-            />
-
             {/* Phone Mockup with Underglow & Effects */}
             <motion.div 
               className="relative"

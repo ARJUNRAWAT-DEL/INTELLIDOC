@@ -10,17 +10,19 @@
 }
 
 :root {
-  /* Midnight Neon AI Palette (RunwayML / Midjourney aesthetic) */
-  --navy-primary: #090D1F;
-  --navy-secondary: #11152B;
-  --navy-tertiary: #191F35;
+  /* Aurora Dark Palette — deep space with violet mesh */
+  --navy-primary: #030712;
+  --navy-secondary: #070C1E;
+  --navy-tertiary: #0C1228;
   --accent-neon-purple: #9A4DFF;
   --accent-neon-cyan: #4F9CFF;
   --accent-purple-alt: #B566FF;
   --accent-blue: #4F9CFF;
+  --accent-violet: #7C3AED;
+  --accent-indigo: #6366F1;
   --text-primary: #FFFFFF;
-  --text-secondary: #D4D8E8;
-  --text-muted: #8B92B0;
+  --text-secondary: #CBD5E1;
+  --text-muted: #64748B;
   --glow-purple: #9A4DFF;
   --glow-cyan: #4F9CFF;
 
@@ -58,11 +60,16 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
-  /* Professional enterprise background - deep matte dark navy */
-  background: linear-gradient(135deg, #0B1120 0%, #0F172A 50%, #0D141F 100%);
+  /* Aurora dark — solid deep base, glows handled by ProfessionalBackground */
+  background: #030712;
   color: var(--text-primary);
   overflow-x: hidden;
   position: relative;
+  /* Smooth antialiasing for better text on dark bg */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent FOUC on dark backgrounds */
+  color-scheme: dark;
 }
 
 #root {
@@ -128,10 +135,10 @@ body {
 
 /* ============ GLASSMORPHISM ============ */
 .glass-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-radius: 16px;
 }
 
@@ -140,16 +147,17 @@ body {
 }
 
 .glass-card-hover:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px rgba(67, 97, 238, 0.1);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(154, 77, 255, 0.25);
+  box-shadow: 0 8px 40px rgba(124, 58, 237, 0.15), 0 0 0 1px rgba(154, 77, 255, 0.1);
+  transform: translateY(-2px);
 }
 
 .glass-navbar {
-  background: rgba(15, 20, 25, 0.7);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(5, 8, 22, 0.75);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
 /* ============ MODERN ANIMATIONS ============ */
@@ -237,7 +245,7 @@ body {
 
 /* ============ UTILITY CLASSES ============ */
 .text-gradient {
-  background: linear-gradient(135deg, #9A4DFF 0%, #4F9CFF 100%);
+  background: linear-gradient(135deg, #A78BFA 0%, #818CF8 40%, #60A5FA 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -332,29 +340,30 @@ body {
   background-clip: text;
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling — minimal & dark */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #4cc9f0 0%, #4361ee 50%, #7209b7 100%);
+  background: rgba(124, 58, 237, 0.45);
   border-radius: 10px;
+  transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #4cc9f0 0%, #7209b7 100%);
+  background: rgba(154, 77, 255, 0.7);
 }
 
 /* Selection styling */
 ::selection {
-  background: linear-gradient(135deg, #4cc9f0 0%, #4361ee 50%, #7209b7 100%);
-  color: white;
+  background: rgba(124, 58, 237, 0.4);
+  color: #fff;
 }
 
 /* ============ PROFESSIONAL BACKGROUND ANIMATIONS ============ */

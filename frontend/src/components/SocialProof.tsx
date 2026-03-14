@@ -57,7 +57,7 @@ const SocialProof = () => {
   };
 
   return (
-    <section className="relative py-20 md:py-32 overflow-hidden bg-gradient-to-b from-navy-primary via-navy-secondary to-navy-primary">
+    <section className="relative py-20 md:py-32 overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div

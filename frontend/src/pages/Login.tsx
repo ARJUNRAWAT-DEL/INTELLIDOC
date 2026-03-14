@@ -215,7 +215,6 @@ export default function Login({ onSuccess, onCancel }: LoginProps) {
   return (
     <div
       className="min-h-screen flex items-center justify-center relative overflow-hidden p-6"
-      style={{ background: 'linear-gradient(135deg, #0B1120 0%, #0F172A 50%, #0D141F 100%)' }}
     >
       {/* Background glow orbs */}
       <div className="absolute top-1/4 -left-16 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />

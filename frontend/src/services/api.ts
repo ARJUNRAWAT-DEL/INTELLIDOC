@@ -84,7 +84,18 @@ interface Metrics {
   model_info: Record<string, any>;
 }
 
-export const API_URL = "http://localhost:8000";
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+// Bypass ngrok browser-warning interstitial for all API fetch calls
+const _origFetch = window.fetch.bind(window);
+window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+  if (url.startsWith(API_URL) && API_URL !== 'http://localhost:8000') {
+    init = init ?? {};
+    init.headers = { 'ngrok-skip-browser-warning': '1', ...(init.headers as Record<string, string> ?? {}) };
+  }
+  return _origFetch(input, init);
+};
 
   export class ApiService {
     // -------------------- Auth --------------------

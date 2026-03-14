@@ -53,8 +53,8 @@ export default function HowItWorks() {
                 ].map((stat, idx) => (
                   <motion.div 
                     key={idx}
-                    className="p-4 rounded-xl bg-glass-card border border-navy-secondary/30 text-center"
-                    whileHover={{ scale: 1.05 }}
+                    className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.07] text-center"
+                    whileHover={{ y: -2 }}
                   >
                     <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-accent-neon-purple to-accent-neon-cyan">{stat.value}</p>
                     <p className="text-sm text-text-secondary mt-1">{stat.label}</p>
@@ -111,16 +111,14 @@ export default function HowItWorks() {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                   <motion.button
-                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-accent-neon-purple to-accent-neon-cyan text-white font-semibold hover:shadow-2xl transition-shadow"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.98 }}
+                    className="px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors duration-200"
+                    whileTap={{ scale: 0.97 }}
                   >
                     Start Free Trial
                   </motion.button>
                   <motion.button
-                    className="px-8 py-4 rounded-xl border border-accent-neon-purple/30 text-accent-neon-purple font-semibold hover:bg-glass-hover transition-colors"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.98 }}
+                    className="px-8 py-4 rounded-xl border border-white/10 text-white/80 font-semibold hover:bg-white/5 hover:border-indigo-500/30 transition-all duration-200"
+                    whileTap={{ scale: 0.97 }}
                   >
                     Schedule Demo
                   </motion.button>

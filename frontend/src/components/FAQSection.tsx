@@ -33,7 +33,7 @@ const FAQSection = () => {
   ];
 
   return (
-    <section className="relative py-20 md:py-32 overflow-hidden bg-gradient-to-b from-navy-primary to-navy-secondary">
+    <section className="relative py-20 md:py-32 overflow-hidden">
       <div className="relative max-w-3xl mx-auto px-6 lg:px-8 z-10">
         {/* Header */}
         <motion.div

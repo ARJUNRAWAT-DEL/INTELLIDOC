@@ -4,17 +4,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Midnight Neon AI Palette (RunwayML / Midjourney aesthetic)
-        'navy-primary': '#090D1F',
-        'navy-secondary': '#11152B',
-        'navy-tertiary': '#191F35',
+        // Aurora Dark Palette
+        'navy-primary': '#030712',
+        'navy-secondary': '#070C1E',
+        'navy-tertiary': '#0C1228',
         'accent-neon-purple': '#9A4DFF',
         'accent-neon-cyan': '#4F9CFF',
         'accent-purple-alt': '#B566FF',
         'accent-blue': '#4F9CFF',
+        'accent-violet': '#7C3AED',
+        'accent-indigo': '#6366F1',
         'text-primary': '#FFFFFF',
-        'text-secondary': '#D4D8E8',
-        'text-muted': '#8B92B0',
+        'text-secondary': '#CBD5E1',
+        'text-muted': '#64748B',
         'glow-purple': '#9A4DFF',
         'glow-cyan': '#4F9CFF',
       },
@@ -41,9 +43,10 @@ export default {
         'button': '0 8px 24px rgba(154, 77, 255, 0.5)',
       },
       backgroundImage: {
-        'gradient-ai': 'radial-gradient(circle at 20% 50%, rgba(154, 77, 255, 0.25) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(79, 156, 255, 0.15) 0%, transparent 50%), linear-gradient(135deg, #090D1F 0%, #11152B 50%, #191F35 100%)',
+        'gradient-ai': 'radial-gradient(circle at 20% 50%, rgba(124, 58, 237, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(79, 156, 255, 0.15) 0%, transparent 50%), linear-gradient(135deg, #050816 0%, #0A0F24 50%, #0F162E 100%)',
         'gradient-button': 'linear-gradient(90deg, #9A4DFF 0%, #B566FF 100%)',
         'gradient-heading': 'linear-gradient(135deg, #9A4DFF 0%, #4F9CFF 100%)',
+        'gradient-aurora': 'linear-gradient(135deg, #7C3AED 0%, #6366F1 50%, #4F9CFF 100%)',
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',

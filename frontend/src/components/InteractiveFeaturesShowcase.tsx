@@ -22,7 +22,7 @@ const InteractiveFeaturesShowcase = () => {
     {
       id: 0,
       icon: <MdSpeed className="w-8 h-8" />,
-      title: '⚡ Lightning Speed',
+      title: 'Lightning Speed',
       shortDesc: 'Process documents instantly',
       fullDesc: 'Get summaries in seconds, not hours. Our optimized AI processes documents at blazing speeds.',
       benefits: ['Sub-second response time', 'Batch processing', 'Real-time streaming'],
@@ -32,7 +32,7 @@ const InteractiveFeaturesShowcase = () => {
     {
       id: 1,
       icon: <MdSmartToy className="w-8 h-8" />,
-      title: '🤖 Smart AI',
+      title: 'Smart AI',
       shortDesc: 'Context-aware understanding',
       fullDesc: 'Advanced NLP understands meaning, context, and nuance in your documents.',
       benefits: ['Context awareness', 'Entity recognition', 'Semantic search'],
@@ -42,7 +42,7 @@ const InteractiveFeaturesShowcase = () => {
     {
       id: 2,
       icon: <MdSecurity className="w-8 h-8" />,
-      title: '🔐 Maximum Security',
+      title: 'Maximum Security',
       shortDesc: 'Enterprise-grade protection',
       fullDesc: 'End-to-end encryption keeps your sensitive documents completely private and secure.',
       benefits: ['End-to-end encryption', 'Zero data sharing', 'Compliance ready'],
@@ -52,7 +52,7 @@ const InteractiveFeaturesShowcase = () => {
     {
       id: 3,
       icon: <MdStorage className="w-8 h-8" />,
-      title: '💾 All Formats',
+      title: 'All Formats',
       shortDesc: 'Works with everything',
       fullDesc: 'PDF, Word, Excel, PowerPoint, TXT, and more. One tool handles it all.',
       benefits: ['Multiple formats', 'Smart extraction', 'Layout preservation'],
@@ -62,7 +62,7 @@ const InteractiveFeaturesShowcase = () => {
     {
       id: 4,
       icon: <MdKey className="w-8 h-8" />,
-      title: '🎯 Precision Results',
+      title: 'Precision Results',
       shortDesc: 'Accurate every time',
       fullDesc: 'Advanced algorithms ensure 98%+ accuracy in summaries and information extraction.',
       benefits: ['High accuracy', 'Source citations', 'Key phrase extraction'],
@@ -88,7 +88,7 @@ const InteractiveFeaturesShowcase = () => {
   };
 
   return (
-    <section className="relative py-20 md:py-32 overflow-hidden bg-slate-950">
+    <section className="relative py-20 md:py-32 overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-6 lg:px-8 z-10">
         {/* Header - clean and simple */}
         <motion.div 
@@ -143,7 +143,7 @@ const InteractiveFeaturesShowcase = () => {
                       ? 'bg-slate-800 border border-indigo-500/50'
                       : 'bg-slate-800/60 border border-slate-700 hover:border-indigo-500/30'
                   }`}
-                whileHover={expandedId !== capability.id ? { scale: 1.02, borderColor: 'rgba(99, 102, 241, 0.5)' } : {}}
+                whileHover={expandedId !== capability.id ? { borderColor: 'rgba(99, 102, 241, 0.4)' } : {}}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               >
                 {/* Content */}
@@ -202,7 +202,7 @@ const InteractiveFeaturesShowcase = () => {
                       {/* Simple CTA Button */}
                       <motion.button
                         className="mt-4 w-full py-2 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-all"
-                        whileHover={{ scale: 1.05 }}
+                        whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.95 }}
                       >
                         Learn More
@@ -212,13 +212,9 @@ const InteractiveFeaturesShowcase = () => {
 
                   {/* Click indicator */}
                   {expandedId !== capability.id && (
-                    <motion.div
-                      className="mt-auto flex justify-center text-text-muted group-hover:text-accent-neon-purple transition-colors"
-                      animate={{ y: [0, 3, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <span className="text-xs">Click to expand</span>
-                    </motion.div>
+                    <div className="mt-auto pt-3 text-xs text-slate-600 group-hover:text-indigo-400/60 transition-colors">
+                      Click to expand
+                    </div>
                   )}
                 </div>
               </motion.div>
@@ -234,8 +230,8 @@ const InteractiveFeaturesShowcase = () => {
           transition={{ duration: 0.6, delay: 0.3 }}
           viewport={{ once: true }}
         >
-          <p className="text-text-secondary text-center">
-            <span className="text-accent-neon-purple font-semibold">💡 Pro Tip:</span> Click on any capability card to see detailed features and benefits. All capabilities work together seamlessly to provide a complete document intelligence solution.
+          <p className="text-slate-400 text-center text-sm">
+            Click any card to expand detailed features and benefits.
           </p>
         </motion.div>
       </div>

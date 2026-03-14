@@ -21,7 +21,7 @@ export default function ProductMockup() {
   ];
 
   return (
-    <section className="relative py-20 md:py-28 bg-gradient-to-b from-slate-900 to-slate-950">
+    <section className="relative py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Section header */}
         <motion.div

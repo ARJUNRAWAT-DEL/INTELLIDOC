@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Depends, File, UploadFile, HTTPException, Query, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 import time
@@ -67,17 +68,34 @@ app = FastAPI(
 )
 
 # CORS middleware (accept str or list in settings.allowed_origins)
+_cors_origins = (
+    settings.allowed_origins
+    if isinstance(settings.allowed_origins, list)
+    else [settings.allowed_origins]
+)
+# Always allow the ngrok static domain
+_ngrok_origin = "https://unfrizzy-aleigha-notarially.ngrok-free.dev"
+if _ngrok_origin not in _cors_origins:
+    _cors_origins = list(_cors_origins) + [_ngrok_origin]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=(
-        settings.allowed_origins
-        if isinstance(settings.allowed_origins, list)
-        else [settings.allowed_origins]
-    ),
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve built React frontend if dist/ folder exists
+_DIST = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "frontend", "dist")
+_DIST = os.path.normpath(_DIST)
+if os.path.isdir(_DIST):
+    app.mount("/assets", StaticFiles(directory=os.path.join(_DIST, "assets")), name="assets")
+
+@app.middleware("http")
+async def add_ngrok_header(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["ngrok-skip-browser-warning"] = "1"
+    return response
 
 def get_db():
     """Database dependency"""
@@ -1076,5 +1094,13 @@ def cleanup_tasks(max_age_hours: int = Query(24, ge=1, le=168)):  # 1-168 hours 
     except Exception as e:
         logger.error(f"Failed to cleanup tasks: {e}")
         raise HTTPException(status_code=500, detail="Failed to cleanup tasks")
+
+# Serve built React SPA — catch-all must be LAST
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_spa(full_path: str):
+    _index = os.path.join(_DIST, "index.html")
+    if os.path.isfile(_index):
+        return FileResponse(_index)
+    return JSONResponse({"detail": "Frontend not built. Run: cd frontend && npm run build"}, status_code=404)
 
 # Note: run with `uvicorn app.main:app --reload`

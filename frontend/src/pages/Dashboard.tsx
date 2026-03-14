@@ -35,7 +35,6 @@ export default function Dashboard() {
   return (
     <div
       className="min-h-screen"
-      style={{ background: 'linear-gradient(135deg, #0B1120 0%, #0F172A 50%, #0D141F 100%)' }}
     >
       {/* Ambient glows */}
       <div className="fixed top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(154,77,255,0.08) 0%, transparent 70%)' }} />
