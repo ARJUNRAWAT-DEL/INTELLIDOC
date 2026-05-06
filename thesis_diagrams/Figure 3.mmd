@@ -1,0 +1,17 @@
+sequenceDiagram
+  participant U as User
+  participant F as Frontend
+  participant B as Backend
+  participant I as Index
+  participant M as Model
+  U->>F: Upload file
+  F->>B: POST /upload
+  B->>B: Extract + chunk text
+  B->>I: Store embeddings
+  U->>F: Ask question
+  F->>B: POST /search
+  B->>I: Retrieve top-k chunks
+  B->>M: Generate grounded answer
+  M-->>B: Answer draft
+  B-->>F: Answer + citations
+  F-->>U: Render response

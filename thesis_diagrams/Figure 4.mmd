@@ -1,0 +1,13 @@
+flowchart LR
+  Client[Browser Client] --> FE[Frontend Service]
+  FE --> BE[Backend API Service]
+  BE --> DB[(PostgreSQL)]
+  BE --> VS[(Vector Index Storage)]
+  BE --> LLM[Model Endpoint]
+  BE --> OCRS[OCR Worker]
+  subgraph Optional Cloud
+    FE
+    BE
+    DB
+    VS
+  end

@@ -1,0 +1,21 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily':'Trebuchet MS','actorBkg':'#DBEAFE','actorBorder':'#1D4ED8','actorTextColor':'#1E3A8A','signalColor':'#0EA5E9','signalTextColor':'#0F172A','labelBoxBkgColor':'#FEF3C7','labelBoxBorderColor':'#F59E0B'}}}%%
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant FE as Frontend
+    participant API as API Service
+    participant OCR as OCR Module
+    participant AI as AI Module
+    participant IDX as Vector Index
+    participant DB as SQL Store
+
+    U->>FE: Upload document
+    FE->>API: POST file + metadata
+    API->>OCR: Parse image/text blocks
+    OCR-->>API: text + confidence map
+    API->>AI: classify and summarize
+    AI->>IDX: write embeddings
+    AI-->>API: tags + summary + entities
+    API->>DB: save canonical record
+    API-->>FE: return ready result
+    FE-->>U: show insights dashboard

@@ -83,3 +83,31 @@ class OnboardingState(Base):
     meta = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+# Phase 1: Conversation Threading
+class ConversationThread(Base):
+    __tablename__ = 'conversation_threads'
+
+    id = Column(Integer, primary_key=True, index=True)
+    thread_id = Column(String(128), unique=True, index=True, nullable=False)
+    user_email = Column(String(255), index=True, nullable=True)
+    title = Column(String(512), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+    
+    messages = relationship("ConversationMessage", back_populates="thread", cascade="all, delete-orphan")
+
+
+class ConversationMessage(Base):
+    __tablename__ = 'conversation_messages'
+
+    id = Column(Integer, primary_key=True, index=True)
+    thread_id = Column(Integer, ForeignKey("conversation_threads.id", ondelete="CASCADE"))
+    query = Column(Text, nullable=False)
+    answer = Column(Text, nullable=False)
+    sources = Column(JSON, nullable=True)  # List of {doc_id, doc_title}
+    citations = Column(JSON, nullable=True)  # List of {quote, chunk_id, doc_id, doc_title}
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    
+    thread = relationship("ConversationThread", back_populates="messages")

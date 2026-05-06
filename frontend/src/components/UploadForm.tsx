@@ -5,7 +5,10 @@ export default function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<{ title: string; chunks_count?: number } | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<{
+    title: string;
+    chunks_count?: number;
+  } | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) setFile(e.target.files[0]);
@@ -22,7 +25,10 @@ export default function UploadForm() {
 
     try {
       const result = await ApiService.uploadFile(file);
-      setUploadedFile({ title: (result as any).result?.title || file.name, chunks_count: (result as any).result?.chunks_count });
+      setUploadedFile({
+        title: (result as any).result?.title || file.name,
+        chunks_count: (result as any).result?.chunks_count,
+      });
       setStatus("Upload queued — processing in background.");
     } catch (err: any) {
       console.error(err);
@@ -34,8 +40,12 @@ export default function UploadForm() {
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg border">
-      <h3 className="text-lg font-semibold text-slate-800 mb-3">Upload Document</h3>
-      <p className="text-sm text-slate-600 mb-4">Supported formats: PDF, DOCX, TXT. Files are processed asynchronously.</p>
+      <h3 className="text-lg font-semibold text-slate-800 mb-3">
+        Upload Document
+      </h3>
+      <p className="text-sm text-slate-600 mb-4">
+        Supported formats: PDF, DOCX, TXT. Files are processed asynchronously.
+      </p>
 
       <div className="flex items-center gap-4">
         <input
@@ -48,9 +58,9 @@ export default function UploadForm() {
         <button
           onClick={handleUpload}
           disabled={loading}
-          className={`px-4 py-2 rounded-md text-white ${loading ? 'bg-slate-400' : 'bg-slate-800 hover:bg-slate-900'}`}
+          className={`px-4 py-2 rounded-md text-white ${loading ? "bg-slate-400" : "bg-slate-800 hover:bg-slate-900"}`}
         >
-          {loading ? 'Uploading...' : 'Upload'}
+          {loading ? "Uploading..." : "Upload"}
         </button>
       </div>
 
@@ -58,9 +68,13 @@ export default function UploadForm() {
 
       {uploadedFile && (
         <div className="mt-4 p-3 bg-green-50 border border-green-100 rounded-md">
-          <div className="font-semibold text-slate-800">{uploadedFile.title}</div>
+          <div className="font-semibold text-slate-800">
+            {uploadedFile.title}
+          </div>
           {uploadedFile.chunks_count !== undefined && (
-            <div className="text-sm text-slate-700">Chunks: {uploadedFile.chunks_count}</div>
+            <div className="text-sm text-slate-700">
+              Chunks: {uploadedFile.chunks_count}
+            </div>
           )}
         </div>
       )}

@@ -1,0 +1,18 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily':'Trebuchet MS','primaryColor':'#DBEAFE','primaryTextColor':'#0F172A','primaryBorderColor':'#1D4ED8','lineColor':'#2563EB','secondaryColor':'#FEF3C7','tertiaryColor':'#DCFCE7'}}}%%
+flowchart LR
+    U([Decision Maker]):::actor --> FE[Web Client\nReact + TypeScript]:::frontend
+    FE --> GW[API Gateway\nAuth + Routing]:::backend
+    GW --> CORE[Core Processing Service]:::backend
+    CORE --> OCR[OCR + Layout Engine]:::service
+    CORE --> NLP[Semantic AI Service]:::service
+    CORE --> DB[(PostgreSQL)]:::data
+    NLP --> VDB[(Vector Store)]:::data
+    CORE --> FILE[(Document Blob Store)]:::data
+    CORE --> OBS[Telemetry + Audit]:::ops
+
+    classDef actor fill:#FCE7F3,stroke:#DB2777,color:#831843;
+    classDef frontend fill:#DBEAFE,stroke:#1D4ED8,color:#1E3A8A;
+    classDef backend fill:#EDE9FE,stroke:#7C3AED,color:#4C1D95;
+    classDef service fill:#FEF3C7,stroke:#D97706,color:#92400E;
+    classDef data fill:#DCFCE7,stroke:#16A34A,color:#14532D;
+    classDef ops fill:#E0F2FE,stroke:#0284C7,color:#0C4A6E;

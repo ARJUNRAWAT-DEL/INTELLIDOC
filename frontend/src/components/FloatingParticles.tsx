@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from "react";
 
 interface Particle {
   x: number;
@@ -20,7 +20,7 @@ const FloatingParticles: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const resizeCanvas = () => {
@@ -29,12 +29,12 @@ const FloatingParticles: React.FC = () => {
     };
 
     const colors = [
-      'rgba(16, 185, 129, 0.6)', // emerald
-      'rgba(34, 197, 94, 0.5)',  // green
-      'rgba(251, 191, 36, 0.4)', // amber
-      'rgba(59, 130, 246, 0.3)', // blue
-      'rgba(168, 85, 247, 0.3)', // purple
-      'rgba(236, 72, 153, 0.3)', // pink
+      "rgba(16, 185, 129, 0.6)", // emerald
+      "rgba(34, 197, 94, 0.5)", // green
+      "rgba(251, 191, 36, 0.4)", // amber
+      "rgba(59, 130, 246, 0.3)", // blue
+      "rgba(168, 85, 247, 0.3)", // purple
+      "rgba(236, 72, 153, 0.3)", // pink
     ];
 
     const createParticle = (): Particle => ({
@@ -50,14 +50,17 @@ const FloatingParticles: React.FC = () => {
 
     const initParticles = () => {
       particlesRef.current = [];
-      const particleCount = Math.min(Math.floor((canvas.width * canvas.height) / 15000), 60);
+      const particleCount = Math.min(
+        Math.floor((canvas.width * canvas.height) / 15000),
+        60,
+      );
       for (let i = 0; i < particleCount; i++) {
         particlesRef.current.push(createParticle());
       }
     };
 
     const updateParticles = () => {
-      particlesRef.current.forEach(particle => {
+      particlesRef.current.forEach((particle) => {
         particle.x += particle.vx;
         particle.y += particle.vy;
         particle.life -= 0.001;
@@ -79,13 +82,17 @@ const FloatingParticles: React.FC = () => {
     const drawParticles = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      particlesRef.current.forEach(particle => {
+      particlesRef.current.forEach((particle) => {
         const gradient = ctx.createRadialGradient(
-          particle.x, particle.y, 0,
-          particle.x, particle.y, particle.size * 2
+          particle.x,
+          particle.y,
+          0,
+          particle.x,
+          particle.y,
+          particle.size * 2,
         );
         gradient.addColorStop(0, particle.color);
-        gradient.addColorStop(1, 'transparent');
+        gradient.addColorStop(1, "transparent");
 
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -95,13 +102,13 @@ const FloatingParticles: React.FC = () => {
 
       // Draw connections between nearby particles
       particlesRef.current.forEach((particle1, i) => {
-        particlesRef.current.slice(i + 1).forEach(particle2 => {
+        particlesRef.current.slice(i + 1).forEach((particle2) => {
           const dx = particle1.x - particle2.x;
           const dy = particle1.y - particle2.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
           if (distance < 120) {
-            const opacity = (120 - distance) / 120 * 0.1;
+            const opacity = ((120 - distance) / 120) * 0.1;
             ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
             ctx.lineWidth = 0.5;
             ctx.beginPath();
@@ -128,10 +135,10 @@ const FloatingParticles: React.FC = () => {
       initParticles();
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
@@ -142,9 +149,9 @@ const FloatingParticles: React.FC = () => {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
-      style={{ 
-        background: 'transparent',
-        mixBlendMode: 'screen'
+      style={{
+        background: "transparent",
+        mixBlendMode: "screen",
       }}
     />
   );

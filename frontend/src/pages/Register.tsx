@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { ApiService } from '../services/api';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { ApiService } from "../services/api";
+import { useNavigate } from "react-router-dom";
+import AuthShell from "../components/AuthShell";
 
 const Register: React.FC = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -15,47 +16,104 @@ const Register: React.FC = () => {
     setError(null);
     setLoading(true);
     try {
-  const res = await ApiService.register({ name, email, password });
-  const token = res?.token;
-  if (token) ApiService.setToken(token);
-  // store user returned by backend (or minimal fallback)
-  if (res?.user) localStorage.setItem('intellidoc_user', JSON.stringify(res.user));
-  else localStorage.setItem('intellidoc_user', JSON.stringify({ email, name }));
-  navigate('/');
+      const res = await ApiService.register({ name, email, password });
+      const token = res?.token;
+      if (token) ApiService.setToken(token);
+      // store user returned by backend (or minimal fallback)
+      if (res?.user)
+        localStorage.setItem("intellidoc_user", JSON.stringify(res.user));
+      else
+        localStorage.setItem(
+          "intellidoc_user",
+          JSON.stringify({ email, name }),
+        );
+      navigate("/");
     } catch (err: any) {
-      setError(err?.message || 'Registration failed');
+      setError(err?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-[var(--demo-pink-1)] p-6">
-      <div className="max-w-lg w-full bg-white rounded-3xl shadow-2xl p-8">
-        <h2 className="text-2xl font-extrabold text-[var(--nav-green)] mb-2">Create an account</h2>
-        <p className="text-sm text-gray-600 mb-6">Register to get started with IntelliDoc</p>
-        {error && <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded">{error}</div>}
+    <AuthShell
+      eyebrow="Join IntelliDoc"
+      title="Create your account in a polished, cosmic workspace."
+      subtitle="Sign up once and use the same account to upload documents, search content, and access the admin portal if you’re the owner."
+      asideTitle="What you get"
+      asideText="A clean onboarding path that feels premium and gives you a real place to start."
+      asidePoints={[
+        "Password hashing with per-user salt",
+        "Lower-cased email normalization for reliable login",
+        "Immediately available onboarding and dashboard routes",
+      ]}
+    >
+      <div className="mx-auto w-full max-w-2xl rounded-[2rem] border border-white/10 bg-white/8 backdrop-blur-2xl shadow-2xl p-6 md:p-8">
+        <div className="mb-6">
+          <h2 className="text-3xl font-black text-white">Create an account</h2>
+          <p className="mt-2 text-sm text-slate-200/75">
+            Register to get started with IntelliDoc.
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-4 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block">
-            <span className="text-sm text-gray-700">Full name</span>
-            <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-200 px-4 py-3" />
+            <span className="text-sm font-medium text-slate-200">
+              Full name
+            </span>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-2 block w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
+            />
           </label>
           <label className="block">
-            <span className="text-sm text-gray-700">Email</span>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-200 px-4 py-3" />
+            <span className="text-sm font-medium text-slate-200">Email</span>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-2 block w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
+            />
           </label>
           <label className="block">
-            <span className="text-sm text-gray-700">Password</span>
-            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-200 px-4 py-3" />
+            <span className="text-sm font-medium text-slate-200">Password</span>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-2 block w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
+            />
           </label>
-          <div>
-            <button type="submit" className={`w-full px-4 py-3 rounded-full text-white font-semibold ${loading ? 'bg-gray-400' : 'bg-[var(--nav-green)] hover:shadow-md'}`} disabled={loading}>
-              {loading ? 'Creating...' : 'Create account'}
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              type="submit"
+              className={`w-full rounded-full px-4 py-3 font-semibold text-slate-950 ${loading ? "bg-slate-400" : "bg-gradient-to-r from-cyan-300 to-fuchsia-400"}`}
+              disabled={loading}
+            >
+              {loading ? "Creating..." : "Create account"}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="rounded-full border border-white/10 bg-white/5 px-4 py-3 font-semibold text-white backdrop-blur-xl"
+            >
+              Back to sign in
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

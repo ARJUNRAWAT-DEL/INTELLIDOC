@@ -40,6 +40,23 @@ import chardet
 # Use MCP client instead of model manager
 from .mcp_client import mcp_client
 from .logger import logger
+from . import ai_utils as _base_ai_utils
+
+
+def extract_pages_from_file(filepath: str):
+    return _base_ai_utils.extract_pages_from_file(filepath)
+
+
+def generate_embeddings_in_pages(pages, chunk_size: int = 800, overlap: int = 120):
+    return _base_ai_utils.generate_embeddings_in_pages(pages, chunk_size, overlap)
+
+
+def strip_chunk_metadata(text: str):
+    return _base_ai_utils.strip_chunk_metadata(text)
+
+
+def parse_chunk_metadata(text: str):
+    return _base_ai_utils.parse_chunk_metadata(text)
 
 # =========================
 # Utilities (unchanged)
@@ -282,12 +299,36 @@ def clean_answer(query: str, answer: str) -> str:
     # Allow longer, more detailed answers
     return answer.strip()
 
-def synthesize_answer(query: str, contexts: List[Dict[str, Any]]) -> str:
+def synthesize_answer(
+    query: str,
+    contexts: List[Dict[str, Any]],
+    answer_length: str = "balanced",
+    answer_mode: str = "summary"
+) -> str:
     """Synthesize answer from contexts using MCP client"""
     context_text = "\n\n".join([c['text'] for c in contexts[:8]])  # Increased to 8 for maximum accuracy
 
+    length_instructions = {
+        "short": "Keep the answer to 3-5 lines.",
+        "balanced": "Give a clear explanation with key points.",
+        "detailed": "Give a detailed answer with sections, bullet points, and citations when possible.",
+    }
+    mode_instructions = {
+        "summary": "Focus on summarizing the document context.",
+        "qa": "Answer the user's question directly and precisely.",
+        "keypoints": "Return the key points in bullet form.",
+        "pageexplanation": "Explain the selected page or page range in plain language.",
+        "actionitems": "Extract actionable items, deadlines, and follow-ups.",
+    }
+
+    instruction_block = (
+        f"Answer mode: {mode_instructions.get(answer_mode, mode_instructions['summary'])}\n"
+        f"Answer length: {length_instructions.get(answer_length, length_instructions['balanced'])}\n"
+        "Always stay grounded in the provided context and cite page numbers when available."
+    )
+
     # Handle summaries
-    if "summary" in query.lower():
+    if answer_mode == "summary" or "summary" in query.lower():
         full_text = " ".join(c['text'] for c in contexts)
         return generate_summary(full_text)
 
@@ -311,7 +352,8 @@ def synthesize_answer(query: str, contexts: List[Dict[str, Any]]) -> str:
     # Use MCP client for answer generation
     context_texts = [c['text'] for c in contexts[:8]]  # Increased to 8 for maximum accuracy
     logger.info(f"Generating answer via MCP for query: '{query}' with {len(context_texts)} contexts")
-    raw_answer = mcp_client.generate_answer(query, context_texts)
+    formatted_query = f"{query}\n\n{instruction_block}"
+    raw_answer = mcp_client.generate_answer(formatted_query, context_texts)
     logger.info(f"Generated raw answer via MCP: '{raw_answer[:100]}...' (length: {len(raw_answer)})")
     cleaned_answer = clean_answer(query, raw_answer)
     logger.info(f"Final cleaned answer: '{cleaned_answer[:100]}...' (length: {len(cleaned_answer)})")

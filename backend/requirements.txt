@@ -27,3 +27,4 @@ tokenizers>=0.15.0
 pdfminer.six
 pdf2image
 pytesseract
+reportlab

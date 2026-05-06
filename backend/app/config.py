@@ -7,9 +7,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./ai_docs.db"
     postgres_url: Optional[str] = None
     
-    # File processing
-    chunk_size: int = 800
-    chunk_overlap: int = 120
+    # File processing - OPTIMIZED FOR QUALITY
+    chunk_size: int = 1200  # Larger chunks = more context for better answers
+    chunk_overlap: int = 200  # More overlap = better context continuity
     max_file_size: int = 25 * 1024 * 1024  # 10MB
     upload_dir: str = "uploads"
     
@@ -19,11 +19,15 @@ class Settings(BaseSettings):
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     text_generation_model: str = "google/flan-t5-base"  
     
-    # Search
+    # Search - OPTIMIZED FOR COMPREHENSIVE ANSWERS
     default_search_limit: int = 10
     max_search_limit: int = 50
-    top_k_retrieval: int = 10
-    top_k_synthesis: int = 3
+    top_k_retrieval: int = 25  # Increased from 10 for richer context
+    top_k_synthesis: int = 5  # Use more context for synthesis
+    
+    # Upload processing - OPTIMIZED FOR SPEED
+    embedding_batch_size: int = 128  # Larger batches = faster GPU throughput
+    db_batch_insert_size: int = 500  # Batch DB inserts for speed
     
     # CORS
     allowed_origins: list = ["*"]

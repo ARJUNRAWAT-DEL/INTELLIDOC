@@ -45,3 +45,22 @@ transformers_cache/
 # Local archive and editor leftovers
 ai-doc-tool - Copy.zip
 .gitignore.txt
+
+# Ignore exported documents, presentations, and large binaries
+*.docx
+*.pptx
+*.pdf
+~$*
+
+# Diagrams and screenshots (generated / large assets)
+thesis_diagrams/*.png
+thesis_screenshots/
+
+# Local tool settings and caches
+frontend/.claude/
+.idea/
+.pytest_cache/
+.mypy_cache/
+
+# Archives
+*.zip

@@ -2,6 +2,7 @@ import torch
 import os
 import warnings
 import logging
+from .config import settings as cfg
 from typing import Dict, List, Any, Optional
 import asyncio
 import atexit
@@ -9,6 +10,7 @@ import atexit
 # Import config and logger first
 from .config import settings
 from .logger import logger
+from .config import settings as cfg
 from .cache_manager import cache_manager
 import threading
 import time
@@ -21,7 +23,7 @@ except ImportError as e:
     logger.warning(f"Transformers import failed: {e}")
     TRANSFORMERS_AVAILABLE = False
     # Create dummy classes to prevent import errors
-    class pipeline:
+                    logger.info(f"Loading embedding model: {cfg.embedding_model}")
         def __init__(self, *args, **kwargs):
             pass
         def __call__(self, *args, **kwargs):
@@ -30,7 +32,7 @@ except ImportError as e:
     class AutoModelForCausalLM:
         @staticmethod
         def from_pretrained(*args, **kwargs):
-            return None
+                            cfg.embedding_model,
     
     class AutoTokenizer:
         @staticmethod
@@ -62,7 +64,7 @@ transformers_logger = logging.getLogger("transformers")
 transformers_logger.addFilter(FlashAttentionFilter())
 
 class ModelManager:
-    """Optimized local model manager for pipelines"""
+                    logger.info(f"Loading summarization model: {cfg.summarization_model}")
 
     def __init__(self):
         self._models = {}
@@ -102,11 +104,11 @@ class ModelManager:
             logger.info("Hugging Face authentication disabled - using public models only")
         except Exception as e:
             logger.warning(f"HF setup failed: {e} - continuing without authentication")
-
+                        logger.info(f"Loading reranker model: {cfg.reranker_model}")
         logger.info(f"ModelManager initialized with device: {self._device}")
 
         # Preload critical models
-        self._preload_critical_models()
+                            cfg.reranker_model,
 
     def _cleanup_on_exit(self):
         """Cleanup function called on exit"""
@@ -137,7 +139,7 @@ class ModelManager:
             with self._loading_lock:
                 # Double-check after acquiring lock
                 if 'embedder' not in self._models and not self._shutdown_event.is_set():
-                    logger.info(f"Loading embedding model: {settings.embedding_model}")
+                    logger.info(f"Loading embedding model: {cfg.embedding_model}")
                     start_time = time.time()
 
                     try:
@@ -147,7 +149,7 @@ class ModelManager:
                                 del os.environ[token_key]
                         
                         self._models['embedder'] = SentenceTransformer(
-                            settings.embedding_model,
+                            cfg.embedding_model,
                             device=self._device,
                             use_auth_token=False  # Explicitly disable token usage
                         )
@@ -181,13 +183,13 @@ class ModelManager:
             with self._loading_lock:
                 # Double-check after acquiring lock
                 if 'summarizer' not in self._models and not self._shutdown_event.is_set():
-                    logger.info(f"Loading summarization model: {settings.summarization_model}")
+                    logger.info(f"Loading summarization model: {cfg.summarization_model}")
                     start_time = time.time()
 
                     try:
                         self._models['summarizer'] = pipeline(
                             "summarization",
-                            model=settings.summarization_model,
+                            model=cfg.summarization_model,
                             device=0 if self._device == "cuda" else -1
                         )
                         load_time = time.time() - start_time
@@ -199,7 +201,7 @@ class ModelManager:
                             try:
                                 self._models['summarizer'] = pipeline(
                                     "summarization",
-                                    model=settings.summarization_model,
+                                    model=cfg.summarization_model,
                                     device=-1
                                 )
                                 load_time = time.time() - start_time
@@ -700,9 +702,9 @@ You are an expert assistant. Your task is to provide comprehensive, detailed ans
             "device": self._device,
             "loaded_models": list(self._models.keys()),
             "model_configs": {
-                "embedding_model": settings.embedding_model,
-                "summarization_model": settings.summarization_model,
-                "reranker_model": settings.reranker_model
+                "embedding_model": cfg.embedding_model,
+                "summarization_model": cfg.summarization_model,
+                "reranker_model": cfg.reranker_model
             }
         }
         if torch.cuda.is_available():
@@ -786,9 +788,9 @@ class SimplifiedModelManager(ModelManager):
             "device": self._device,
             "loaded_models": list(self._models.keys()),
             "model_configs": {
-                "embedding_model": settings.embedding_model,
-                "summarization_model": settings.summarization_model,
-                "reranker_model": settings.reranker_model
+                "embedding_model": cfg.embedding_model,
+                "summarization_model": cfg.summarization_model,
+                "reranker_model": cfg.reranker_model
             }
         }
         if torch.cuda.is_available():

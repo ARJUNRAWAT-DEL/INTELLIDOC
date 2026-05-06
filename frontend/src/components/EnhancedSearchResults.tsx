@@ -38,7 +38,9 @@ const EnhancedSearchResults: React.FC<EnhancedSearchResultsProps> = ({
       <div className="text-center py-16">
         <div className="inline-block w-8 h-8 border-2 border-gray-300 border-t-black rounded-full animate-spin mb-6"></div>
         <h3 className="text-lg font-medium text-black mb-2">Processing...</h3>
-        <p className="text-gray-600 text-sm">Analyzing documents with dual AI models</p>
+        <p className="text-gray-600 text-sm">
+          Analyzing documents with dual AI models
+        </p>
       </div>
     );
   }
@@ -48,8 +50,16 @@ const EnhancedSearchResults: React.FC<EnhancedSearchResultsProps> = ({
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <div className="flex items-center">
           <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-            <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            <svg
+              className="h-5 w-5 text-red-600"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
             </svg>
           </div>
           <div className="ml-4">
@@ -65,16 +75,34 @@ const EnhancedSearchResults: React.FC<EnhancedSearchResultsProps> = ({
     return (
       <div className="text-center py-16">
         <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-6 flex items-center justify-center">
-          <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <svg
+            className="w-8 h-8 text-gray-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         </div>
         <h3 className="text-lg font-medium text-black mb-2">Ready to Search</h3>
-        <p className="text-gray-600 text-sm mb-8">Enter your query above to discover insights from your documents</p>
+        <p className="text-gray-600 text-sm mb-8">
+          Enter your query above to discover insights from your documents
+        </p>
         <div className="flex justify-center space-x-4">
-          <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Dual AI Models</span>
-          <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Semantic Search</span>
-          <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Precise Results</span>
+          <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+            Dual AI Models
+          </span>
+          <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+            Semantic Search
+          </span>
+          <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+            Precise Results
+          </span>
         </div>
       </div>
     );
@@ -94,17 +122,19 @@ const EnhancedSearchResults: React.FC<EnhancedSearchResultsProps> = ({
             )}
           </h3>
         </div>
-        
+
         <div className="mb-6">
-          <p className="text-gray-900 text-lg leading-relaxed">{searchResponse.answer}</p>
+          <p className="text-gray-900 text-lg leading-relaxed">
+            {searchResponse.answer}
+          </p>
         </div>
-        
+
         <div className="flex flex-wrap gap-4 text-sm text-gray-600">
           {/* Selection Reason */}
           {searchResponse.dual_answers && (
             <span>{searchResponse.dual_answers.selection_reason}</span>
           )}
-          
+
           {/* Processing Time */}
           {searchResponse.processing_time && (
             <span>• {searchResponse.processing_time.toFixed(2)}s</span>
@@ -113,73 +143,84 @@ const EnhancedSearchResults: React.FC<EnhancedSearchResultsProps> = ({
       </div>
 
       {/* Dual Answers Comparison Section */}
-      {searchResponse.dual_answers && searchResponse.dual_answers.dual_answers_enabled && (
-        <div className="pt-8 border-t border-gray-200">
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-black mb-2">
-              Model Comparison
-            </h3>
-            <p className="text-gray-600 text-sm">See how different AI models approached your question</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Local Model Answer */}
-            <div className={`border rounded-lg p-6 ${
-              searchResponse.dual_answers.selected_source === 'local' 
-                ? 'border-black bg-gray-50' 
-                : 'border-gray-200 bg-white'
-            }`}>
-              {/* Winner indicator */}
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-medium text-black">
-                  Local Model
-                </h4>
-                {searchResponse.dual_answers.selected_source === 'local' && (
-                  <span className="text-xs bg-black text-white px-2 py-1 rounded-full">SELECTED</span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mb-4">Phi-3 / FLAN-T5 • Running locally</p>
-              
-              <div className="text-gray-900 leading-relaxed text-sm">
-                {searchResponse.dual_answers.local_answer}
-              </div>
+      {searchResponse.dual_answers &&
+        searchResponse.dual_answers.dual_answers_enabled && (
+          <div className="pt-8 border-t border-gray-200">
+            <div className="mb-6">
+              <h3 className="text-lg font-medium text-black mb-2">
+                Model Comparison
+              </h3>
+              <p className="text-gray-600 text-sm">
+                See how different AI models approached your question
+              </p>
             </div>
 
-            {/* GROQ Model Answer */}
-            <div className={`border rounded-lg p-6 ${
-              searchResponse.dual_answers.selected_source === 'groq' 
-                ? 'border-black bg-gray-50' 
-                : 'border-gray-200 bg-white'
-            }`}>
-              {/* Winner indicator */}
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-medium text-black">
-                  GROQ Model
-                </h4>
-                {searchResponse.dual_answers.selected_source === 'groq' && (
-                  <span className="text-xs bg-black text-white px-2 py-1 rounded-full">SELECTED</span>
-                )}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Local Model Answer */}
+              <div
+                className={`border rounded-lg p-6 ${
+                  searchResponse.dual_answers.selected_source === "local"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-200 bg-white"
+                }`}
+              >
+                {/* Winner indicator */}
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium text-black">Local Model</h4>
+                  {searchResponse.dual_answers.selected_source === "local" && (
+                    <span className="text-xs bg-black text-white px-2 py-1 rounded-full">
+                      SELECTED
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mb-4">
+                  Phi-3 / FLAN-T5 • Running locally
+                </p>
+
+                <div className="text-gray-900 leading-relaxed text-sm">
+                  {searchResponse.dual_answers.local_answer}
+                </div>
               </div>
-              <p className="text-xs text-gray-500 mb-4">Llama-3-70B • Cloud-powered • 70B parameters</p>
-              
-              <div className="text-gray-900 leading-relaxed text-sm">
-                {searchResponse.dual_answers.groq_answer}
+
+              {/* GROQ Model Answer */}
+              <div
+                className={`border rounded-lg p-6 ${
+                  searchResponse.dual_answers.selected_source === "groq"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-200 bg-white"
+                }`}
+              >
+                {/* Winner indicator */}
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium text-black">GROQ Model</h4>
+                  {searchResponse.dual_answers.selected_source === "groq" && (
+                    <span className="text-xs bg-black text-white px-2 py-1 rounded-full">
+                      SELECTED
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mb-4">
+                  Llama-3-70B • Cloud-powered • 70B parameters
+                </p>
+
+                <div className="text-gray-900 leading-relaxed text-sm">
+                  {searchResponse.dual_answers.groq_answer}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Sources Section */}
       {searchResponse.sources.length > 0 && (
         <div className="pt-8 border-t border-gray-200">
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-black mb-2">
-              Sources
-            </h3>
-            <p className="text-gray-600 text-sm">Information gathered from these documents</p>
+            <h3 className="text-lg font-medium text-black mb-2">Sources</h3>
+            <p className="text-gray-600 text-sm">
+              Information gathered from these documents
+            </p>
           </div>
-          
+
           <div className="space-y-3">
             {searchResponse.sources.map((source, index) => (
               <div
@@ -204,7 +245,10 @@ const EnhancedSearchResults: React.FC<EnhancedSearchResultsProps> = ({
       {/* Query Info */}
       <div className="pt-6 border-t border-gray-200">
         <p className="text-sm text-gray-500">
-          Query: <span className="text-black font-medium">"{searchResponse.query}"</span>
+          Query:{" "}
+          <span className="text-black font-medium">
+            "{searchResponse.query}"
+          </span>
         </p>
       </div>
     </div>

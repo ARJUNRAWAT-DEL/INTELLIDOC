@@ -1,46 +1,301 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-interface Props {
-  modal?: boolean;
-  isOpen?: boolean;
-  onClose?: () => void;
-}
+export default function HowItWorks() {
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(0);
 
-// Per-step SVG icons (document-focused style)
-function StepIcon({ index }: { index: number }) {
-  if (index === 0) {
-    // Upload icon
-    return (
-      <div className="flex items-center justify-center mb-4">
-        <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-float">
-          <rect x="6" y="14" width="60" height="44" rx="8" fill="#ECFDF5" stroke="#D1FAE5" />
-          <path d="M36 20v20" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M28 28l8-8 8 8" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-    );
-  }
-  if (index === 1) {
-    // Search icon
-    return (
-      <div className="flex items-center justify-center mb-4">
-        <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-float">
-          <circle cx="32" cy="32" r="18" fill="#F5F3FF" stroke="#E9D5FF" />
-          <path d="M44 44l12 12" stroke="#7C3AED" strokeWidth="3" strokeLinecap="round" />
-          <rect x="16" y="16" width="6" height="6" rx="1" fill="#7C3AED" />
-        </svg>
-      </div>
-    );
-  }
-  // index === 2 Answer icon
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % 5);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const steps = [
+    {
+      title: "Upload Document",
+      description:
+        "Drag and drop PDFs, contracts, research papers, reports, or any document.",
+      icon: "📄",
+      color: "from-cyan-500 to-blue-600",
+    },
+    {
+      title: "AI Processing",
+      description:
+        "IntelliDoc reads and extracts key information, clauses, deadlines, and important details.",
+      icon: "⚡",
+      color: "from-purple-500 to-pink-600",
+    },
+    {
+      title: "Summary Generated",
+      description:
+        "Get a clear, concise summary with important points highlighted and organized.",
+      icon: "✨",
+      color: "from-amber-500 to-orange-600",
+    },
+    {
+      title: "Ask Questions",
+      description:
+        "Chat with your document and get instant answers to any question you have.",
+      icon: "💬",
+      color: "from-green-500 to-teal-600",
+    },
+    {
+      title: "AI Answers with Source",
+      description:
+        "Every answer includes the exact source from your document with page references.",
+      icon: "🎯",
+      color: "from-blue-500 to-indigo-600",
+    },
+  ];
+
+  const features = [
+    {
+      num: "1",
+      title: "Upload any document",
+      desc: "PDFs, contracts, research papers, reports, and notes.",
+    },
+    {
+      num: "2",
+      title: "AI reads and understands",
+      desc: "IntelliDoc extracts key points, clauses, deadlines, and important details.",
+    },
+    {
+      num: "3",
+      title: "Get source-backed summaries",
+      desc: "Every answer includes where the information came from.",
+    },
+    {
+      num: "4",
+      title: "Ask questions",
+      desc: "Chat with your document and get clear answers instantly.",
+    },
+  ];
+
   return (
-    <div className="flex items-center justify-center mb-4">
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-float">
-        <rect x="8" y="12" width="56" height="48" rx="8" fill="#FFF1F2" stroke="#FDE2EC" />
-        <path d="M22 26h28" stroke="#DB2777" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M22 34h20" stroke="#DB2777" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="50" cy="44" r="4" fill="#DB2777" />
-      </svg>
+    <div className="relative min-h-screen w-full bg-[#01030a] pt-24 pb-16 px-6 lg:px-8">
+      {/* Hero Section */}
+      <section className="max-w-6xl mx-auto mb-20">
+        <div className="text-center mb-16">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-display font-black leading-[0.95] text-white mb-6">
+            See IntelliDoc in Action
+          </h1>
+          <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed font-light">
+            Watch how our AI transforms complex documents into instant summaries
+            and answers.
+          </p>
+        </div>
+
+        {/* Mobile App Mockup - Animated */}
+        <div className="flex justify-center mb-16">
+          <div
+            className="relative w-80 rounded-[2rem] overflow-hidden shadow-2xl border-8 border-slate-900 bg-white"
+            style={{
+              perspective: "1000px",
+              transform: "perspective(1000px) rotateY(-6deg)",
+            }}
+          >
+            {/* Phone notch */}
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-40 h-7 bg-black rounded-b-3xl z-20" />
+
+            {/* Status bar */}
+            <div className="bg-slate-900 text-white px-6 py-2 flex justify-between items-center text-xs font-semibold pt-8">
+              <span>9:41</span>
+              <span>📶 📡 🔋</span>
+            </div>
+
+            {/* App header */}
+            <div className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 py-4">
+              <h2 className="font-bold text-lg">IntelliDoc</h2>
+              <p className="text-xs text-cyan-100">AI Document Analysis</p>
+            </div>
+
+            {/* Content area - animated steps */}
+            <div className="bg-slate-50 px-6 py-8 h-64 overflow-hidden relative">
+              {steps.map((step, idx) => (
+                <div
+                  key={idx}
+                  className={`absolute inset-x-6 top-8 transition-all duration-700 ${
+                    idx === currentStep
+                      ? "opacity-100 translate-y-0"
+                      : idx < currentStep
+                        ? "opacity-0 -translate-y-full"
+                        : "opacity-0 translate-y-full"
+                  }`}
+                >
+                  <div className="flex flex-col items-center">
+                    <div className="text-4xl mb-3">{step.icon}</div>
+                    <h3 className="font-bold text-slate-900 text-center text-sm mb-2">
+                      {step.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 text-center leading-relaxed">
+                      {step.description}
+                    </p>
+
+                    {/* Progress indicator */}
+                    {idx === 0 && currentStep === 0 && (
+                      <div className="w-full mt-4 h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-cyan-500 animate-[width_4s_ease-in-out]"
+                          style={{ width: "100%" }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Processing dots */}
+                    {idx === 1 && currentStep === 1 && (
+                      <div className="flex gap-1 mt-4">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+                        <div
+                          className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"
+                          style={{ animationDelay: "0.2s" }}
+                        />
+                        <div
+                          className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"
+                          style={{ animationDelay: "0.4s" }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Summary bullets */}
+                    {idx === 2 && currentStep === 2 && (
+                      <div className="text-left w-full mt-3 space-y-1">
+                        <div className="text-xs text-slate-600">
+                          ✓ Key terms identified
+                        </div>
+                        <div className="text-xs text-slate-600">
+                          ✓ Summary generated
+                        </div>
+                        <div className="text-xs text-slate-600">
+                          ✓ Ready for questions
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Chat bubble */}
+                    {idx === 3 && currentStep === 3 && (
+                      <div className="text-left w-full mt-3 space-y-2">
+                        <div className="bg-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 max-w-[90%]">
+                          What is the cancellation policy?
+                        </div>
+                        <div className="text-right">
+                          <div className="bg-green-500 text-white rounded-lg px-3 py-2 text-xs inline-block max-w-[90%]">
+                            Processing...
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Answer with source */}
+                    {idx === 4 && currentStep === 4 && (
+                      <div className="text-left w-full mt-3 space-y-2">
+                        <div className="bg-green-100 border border-green-300 rounded-lg px-3 py-2 text-xs text-slate-900">
+                          <p className="font-semibold mb-1">Answer:</p>
+                          <p className="mb-2">Requires 14 days notice</p>
+                          <p className="text-xs text-green-700 font-semibold">
+                            📄 Source: Page 5
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Home indicator */}
+            <div className="bg-slate-900 px-6 py-3 text-center">
+              <div className="w-32 h-1 bg-white rounded-full mx-auto" />
+            </div>
+          </div>
+        </div>
+
+        {/* Step indicators */}
+        <div className="flex justify-center gap-3 mb-12">
+          {steps.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentStep(idx)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                idx === currentStep
+                  ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg"
+                  : "bg-slate-700/50 text-slate-300 hover:bg-slate-700"
+              }`}
+            >
+              {idx + 1}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Feature sections */}
+      <section className="max-w-6xl mx-auto mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {features.map((feature, idx) => (
+            <div
+              key={idx}
+              className="group relative p-6 rounded-xl border border-slate-700 bg-slate-900/30 hover:border-cyan-500/50 hover:bg-slate-900/60 transition-all duration-300"
+            >
+              {/* Gradient border effect on hover */}
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/0 via-cyan-500/0 to-blue-600/0 group-hover:from-cyan-500/10 group-hover:via-cyan-500/5 group-hover:to-blue-600/10 transition-all duration-300 pointer-events-none" />
+
+              <div className="relative">
+                <div className="text-4xl font-black bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-3">
+                  {feature.num}
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  {feature.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="max-w-4xl mx-auto text-center py-12">
+        <h2 className="text-4xl md:text-5xl font-display font-black text-white mb-6">
+          Ready to transform your documents?
+        </h2>
+        <p className="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
+          Start summarizing and asking questions about your documents in
+          seconds. No credit card required.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <button
+            onClick={() => navigate("/summarize")}
+            className="group relative px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-2xl hover:shadow-cyan-500/40 overflow-hidden"
+          >
+            <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+            <span className="relative flex items-center gap-2 justify-center">
+              Start Free
+              <svg
+                className="w-5 h-5 group-hover:translate-x-1 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
+            </span>
+          </button>
+          <button
+            onClick={() => navigate("/")}
+            className="px-8 py-4 text-slate-300 font-semibold border-2 border-slate-500 rounded-xl hover:border-slate-300 hover:bg-slate-900/30 hover:text-slate-100 transition-all duration-300"
+          >
+            Back to Home
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
@@ -49,177 +304,81 @@ function StepIcon({ index }: { index: number }) {
 function DocumentHeroSVG() {
   return (
     <div className="w-full flex items-center justify-center">
-      <svg viewBox="0 0 240 240" width="220" height="220" xmlns="http://www.w3.org/2000/svg">
+      <svg
+        viewBox="0 0 240 240"
+        width="220"
+        height="220"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         <defs>
           <linearGradient id="g1" x1="0" x2="1">
             <stop offset="0%" stopColor="#06B6D4" />
             <stop offset="100%" stopColor="#7C3AED" />
           </linearGradient>
         </defs>
-        <rect x="14" y="34" width="160" height="120" rx="12" fill="#F8FAFC" stroke="#E6EEF3" />
-        <path d="M28 52h128" stroke="#CBD5E1" strokeWidth="3" strokeLinecap="round" />
-        <path d="M28 72h96" stroke="#94A3B8" strokeWidth="3" strokeLinecap="round" />
+        <rect
+          x="14"
+          y="34"
+          width="160"
+          height="120"
+          rx="12"
+          fill="#F8FAFC"
+          stroke="#E6EEF3"
+        />
+        <path
+          d="M28 52h128"
+          stroke="#CBD5E1"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <path
+          d="M28 72h96"
+          stroke="#94A3B8"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
         <g transform="translate(120, 28)">
           <circle cx="48" cy="48" r="36" fill="url(#g1)" opacity="0.12" />
-          <path d="M36 44h24M36 56h12" stroke="#0EA5A4" strokeWidth="3" strokeLinecap="round" />
-          <rect x="6" y="86" width="84" height="36" rx="6" fill="#fff" stroke="#E6EEF3" />
+          <path
+            d="M36 44h24M36 56h12"
+            stroke="#0EA5A4"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          <rect
+            x="6"
+            y="86"
+            width="84"
+            height="36"
+            rx="6"
+            fill="#fff"
+            stroke="#E6EEF3"
+          />
         </g>
         <g transform="translate(28, 160)">
-          <rect x="0" y="0" width="184" height="40" rx="8" fill="#fff" stroke="#E6EEF3" />
-          <path d="M12 12h60" stroke="#94A3B8" strokeWidth="3" strokeLinecap="round" />
-          <path d="M12 26h100" stroke="#CBD5E1" strokeWidth="3" strokeLinecap="round" />
+          <rect
+            x="0"
+            y="0"
+            width="184"
+            height="40"
+            rx="8"
+            fill="#fff"
+            stroke="#E6EEF3"
+          />
+          <path
+            d="M12 12h60"
+            stroke="#94A3B8"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          <path
+            d="M12 26h100"
+            stroke="#CBD5E1"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
         </g>
       </svg>
     </div>
-  );
-}
-
-export default function HowItWorks(props: Props) {
-  const { modal = false, isOpen = true, onClose } = props;
-  const [step, setStep] = useState(0);
-  const [query, setQuery] = useState('Summarize the attached contract in 2 bullet points');
-  const [answer, setAnswer] = useState('');
-  const [LottieComp, setLottieComp] = useState<any>(null);
-  const [animData, setAnimData] = useState<any>(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => setStep(s => (s + 1) % 3), 4000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    // try to dynamically import lottie-react; if unavailable, fail silently
-    let mounted = true;
-    // Avoid Vite's static analysis by constructing the package name at runtime
-    // so the dev server won't pre-resolve this optional dependency.
-    const _pkg: any = 'lottie' + '-react';
-    // use Vite ignore comment to suppress analysis warning for this dynamic import
-    // the import will be attempted at runtime; if the package isn't installed it will fail and be ignored
-    import(/* @vite-ignore */ _pkg)
-      .then((mod) => { if (mounted) setLottieComp(() => mod.default); })
-      .catch(() => { /* optional dependency - ignore */ });
-    // fetch a small Lottie json from public CDN (will fail if offline)
-    fetch('https://assets6.lottiefiles.com/packages/lf20_touohxv0.json')
-      .then(r => r.json())
-      .then(j => { if (mounted) setAnimData(j); })
-      .catch(() => { /* ignore */ });
-    return () => { mounted = false; };
-  }, []);
-
-  // lock body scroll when modal is open
-  useEffect(() => {
-    if (!modal) return;
-    if (isOpen) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = prev; };
-    }
-  }, [modal, isOpen]);
-
-  const runExample = async () => {
-    setAnswer('');
-    const simulated = '• Key obligation: Payment due within 30 days.\n• Term: Automatic renewal unless terminated.';
-    let i = 0;
-    const t = setInterval(() => {
-      i += 1;
-      setAnswer(simulated.slice(0, i));
-      if (i >= simulated.length) clearInterval(t);
-    }, 20);
-  };
-
-  const content = (
-    <div className="max-w-5xl mx-auto bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-premium border border-slate-700 overflow-hidden">
-      <header className="p-6 border-b border-slate-700 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white font-display">How IntelliDoc Works</h1>
-          <p className="mt-1 text-sm text-slate-400">A short guided tour with animations and a small interactive example.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {LottieComp && animData ? (
-            // @ts-ignore - dynamic component
-            <LottieComp animationData={animData} loop={true} style={{ width: 120, height: 120 }} />
-          ) : (
-            <div className="w-28 h-28 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-lg flex items-center justify-center text-sm text-slate-300 font-semibold border border-slate-700">Demo</div>
-          )}
-          {modal && <button onClick={onClose} className="px-3 py-2 rounded-md bg-slate-700 text-white hover:bg-slate-600">Close</button>}
-        </div>
-      </header>
-
-      <main className="p-6 space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: main content spans two columns on large screens */}
-          <div className="lg:col-span-2 space-y-6">
-            <section>
-              <h2 className="text-lg font-bold text-white mb-3 font-display">At a glance</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[0,1,2].map(i => (
-                  <div key={i} className={`p-6 rounded-xl border transition-all animate-slide-in ${step === i ? 'shadow-premium scale-105 border-blue-400 bg-slate-700/50' : 'border-slate-700 bg-slate-800/50'}`} style={{ animationDelay: `${i * 120}ms` }}>
-                    <StepIcon index={i} />
-                    <div className="text-sm font-semibold text-white mb-1">{i===0 ? 'Upload' : i===1 ? 'Search' : 'Answer'}</div>
-                    <p className="text-sm text-slate-400">{i===0 ? 'Drag & drop PDFs, Word docs — IntelliDoc extracts text.' : i===1 ? 'Ask natural-language questions — embeddings find relevant passages.' : 'Receive concise, sourced answers with links back to documents.'}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-bold text-white mb-3 font-display">Interactive example</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl border border-slate-700 bg-slate-800/50">
-                  <div className="text-sm text-slate-400 mb-2">Example query</div>
-                  <textarea value={query} onChange={(e) => setQuery(e.target.value)} className="w-full p-2 rounded-md border border-slate-600 bg-slate-900 text-white h-28 focus:border-blue-500 focus:outline-none" />
-                  <div className="mt-3 flex gap-2">
-                    <button onClick={runExample} className="px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md text-sm hover:from-blue-500 hover:to-indigo-500 font-semibold">Run query</button>
-                    <button onClick={() => { setQuery('Find all clauses about termination and summarize in 3 bullets'); setAnswer(''); }} className="px-3 py-2 border border-slate-600 text-slate-300 rounded-md text-sm hover:border-slate-500 hover:bg-slate-800">Load example</button>
-                  </div>
-                  <div className="mt-2 text-xs text-slate-500">This demo is local and simulates the real answer.</div>
-                </div>
-
-                <div className="p-4 rounded-xl border border-slate-700 bg-slate-800/50 flex flex-col">
-                  <div className="text-sm text-slate-400 mb-2">AI answer</div>
-                  <div className="flex-1 bg-slate-900 p-3 rounded-md border border-dashed border-slate-600 overflow-auto whitespace-pre-wrap text-slate-200">{answer || <span className="text-slate-500">Run the example to see a simulated answer appear here.</span>}</div>
-                  <div className="mt-2 text-xs text-slate-500">Real answers include document sources and timestamps.</div>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          {/* Right: professional document-focused illustration */}
-          <aside className="hidden lg:flex lg:flex-col lg:items-center lg:justify-start">
-            <div className="w-full p-6">
-              <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 shadow-premium border border-slate-700 animate-pulse-soft">
-                <DocumentHeroSVG />
-                <h3 className="mt-4 text-lg font-bold text-white font-display">Document intelligence</h3>
-                <p className="mt-2 text-sm text-slate-300">Visualize how IntelliDoc extracts, indexes and surfaces answers from your documents.</p>
-              </div>
-            </div>
-          </aside>
-        </div>
-      </main>
-    </div>
-  );
-
-  if (modal) {
-    if (!isOpen) return null;
-    return (
-      <div className="fixed inset-0 z-50 flex items-start justify-center py-12">
-        <div onClick={onClose} className="absolute inset-0 bg-black/40" />
-        {/* Modal shell: allow scrolling inside modal and limit height */}
-        <div className="relative w-full max-w-5xl mx-4 max-h-[85vh] overflow-auto rounded-lg">{content}</div>
-        <style>{`
-          @keyframes float { 0% { transform: translateY(0) } 50% { transform: translateY(-6px) } 100% { transform: translateY(0) } }
-          @keyframes pulse { 0% { transform: scale(1); opacity: .95 } 50% { transform: scale(1.02); opacity: 1 } 100% { transform: scale(1); opacity: .95 } }
-          @keyframes slide-in { from { transform: translateY(8px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
-          .animate-float { animation: float 4s ease-in-out infinite; }
-          .animate-pulse-soft { animation: pulse 3s ease-in-out infinite; }
-          .animate-slide-in { animation: slide-in .45s cubic-bezier(.2,.8,.2,1) both; }
-        `}</style>
-      </div>
-    );
-
-  }
-
-  return (
-    <div>{content}</div>
   );
 }

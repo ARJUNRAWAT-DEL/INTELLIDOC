@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ApiService } from "../services/api";
 
 // Local type definitions to avoid import issues
@@ -28,28 +28,34 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
   onError,
 }) => {
   const [status, setStatus] = useState<TaskStatus | null>(null);
-    // const [polling, setPolling] = useState(false);
+  const callbackFiredRef = useRef(false);
 
   useEffect(() => {
     if (!taskId) {
       setStatus(null);
-        // setPolling(false);
+      callbackFiredRef.current = false;
       return;
     }
 
-      // setPolling(true);
+    callbackFiredRef.current = false;
+
     const pollStatus = async () => {
       try {
         const taskStatus = await ApiService.getUploadStatus(taskId);
         setStatus(taskStatus);
 
-        if (taskStatus.status === "completed") {
+        if (taskStatus.status === "completed" && !callbackFiredRef.current) {
+          callbackFiredRef.current = true;
           onComplete?.(taskStatus.result);
-        } else if (taskStatus.status === "failed") {
+        } else if (taskStatus.status === "failed" && !callbackFiredRef.current) {
+          callbackFiredRef.current = true;
           onError?.(taskStatus.message);
         }
       } catch (err: any) {
-        onError?.(err.message);
+        if (!callbackFiredRef.current) {
+          callbackFiredRef.current = true;
+          onError?.(err.message);
+        }
       }
     };
 
@@ -58,7 +64,7 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
 
     return () => {
       clearInterval(interval);
-        // setPolling(false);
+      // setPolling(false);
     };
   }, [taskId, onComplete, onError]);
 
@@ -88,14 +94,30 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
         );
       case "completed":
         return (
-          <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          <svg
+            className="h-4 w-4 text-white"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clipRule="evenodd"
+            />
           </svg>
         );
       case "failed":
         return (
-          <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+          <svg
+            className="h-4 w-4 text-white"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clipRule="evenodd"
+            />
           </svg>
         );
       default:
@@ -106,20 +128,20 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
   return (
     <div className="bg-white border border-gray-100 rounded-2xl p-4 mb-4 shadow-sm">
       <div className="flex items-center space-x-3">
-        <div className={`flex-shrink-0 w-8 h-8 rounded-full ${getStatusColor()} flex items-center justify-center`}>
+        <div
+          className={`flex-shrink-0 w-8 h-8 rounded-full ${getStatusColor()} flex items-center justify-center`}
+        >
           {getStatusIcon()}
         </div>
-        
+
         <div className="flex-1">
           <div className="flex justify-between items-center mb-2">
             <h4 className="text-sm font-medium text-gray-900">
               Upload Progress
             </h4>
-            <span className="text-xs text-gray-500">
-              {status.progress}%
-            </span>
+            <span className="text-xs text-gray-500">{status.progress}%</span>
           </div>
-          
+
           {/* Progress Bar */}
           <div className="w-full bg-gray-100 rounded-full h-2">
             <div
@@ -127,9 +149,9 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
               style={{ width: `${status.progress}%` }}
             ></div>
           </div>
-          
+
           <p className="text-sm text-gray-600 mt-2">{status.message}</p>
-          
+
           {/* Result Details */}
           {status.status === "completed" && status.result && (
             <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100">

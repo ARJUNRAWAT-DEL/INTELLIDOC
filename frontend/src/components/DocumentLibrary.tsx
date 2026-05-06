@@ -15,11 +15,13 @@ interface DocumentSummary {
 interface DocumentLibraryProps {
   onDocumentSelect?: (doc: DocumentSummary) => void;
   refreshTrigger?: number;
+  selectedDocumentId?: number;
 }
 
-const DocumentLibrary: React.FC<DocumentLibraryProps> = ({ 
-  onDocumentSelect, 
-  refreshTrigger 
+const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
+  onDocumentSelect,
+  refreshTrigger,
+  selectedDocumentId,
 }) => {
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -40,10 +42,10 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
 
   const handleDelete = async (id: number, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
-    
+
     try {
       await ApiService.deleteDocument(id);
-      setDocuments(docs => docs.filter(doc => doc.id !== id));
+      setDocuments((docs) => docs.filter((doc) => doc.id !== id));
     } catch (err: any) {
       alert("Failed to delete document: " + err.message);
     }
@@ -79,7 +81,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <p className="text-red-800">Error loading documents: {error}</p>
-        <button 
+        <button
           onClick={loadDocuments}
           className="mt-2 bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
         >
@@ -92,8 +94,18 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
   if (documents.length === 0) {
     return (
       <div className="text-center p-6">
-        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <svg
+          className="mx-auto h-12 w-12 text-gray-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
         </svg>
         <p className="text-gray-500 mt-2">No documents uploaded yet</p>
       </div>
@@ -115,14 +127,30 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
       </div>
 
       <div className="grid gap-4">
-        {documents.map((doc) => (
-          <div key={doc.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+        {documents.map((doc) => {
+          const isSelected = doc.id === selectedDocumentId;
+          return (
+          <div
+            key={doc.id}
+            className={`border rounded-lg p-4 shadow-sm hover:shadow-md transition-all ${
+              isSelected
+                ? "bg-emerald-50 border-emerald-400 ring-2 ring-emerald-300"
+                : "bg-white border-gray-200"
+            }`}
+          >
             <div className="flex justify-between items-start">
               <div className="flex-1">
-                <h4 className="text-sm font-medium text-gray-900 mb-1">
-                  📄 {doc.title}
-                </h4>
-                
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="text-sm font-medium text-gray-900">
+                    📄 {doc.title}
+                  </h4>
+                  {isSelected && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-xs font-semibold">
+                      ✓ Selected
+                    </span>
+                  )}
+                </div>
+
                 {doc.summary && (
                   <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                     {doc.summary}
@@ -133,7 +161,9 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                   <span>📅 {formatDate(doc.created_at)}</span>
                   <span>📏 {formatFileSize(doc.file_size)}</span>
                   {doc.file_type && <span>📋 {doc.file_type}</span>}
-                  {doc.chunks_count && <span>🧩 {doc.chunks_count} chunks</span>}
+                  {doc.chunks_count && (
+                    <span>🧩 {doc.chunks_count} chunks</span>
+                  )}
                 </div>
               </div>
 
@@ -141,12 +171,16 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                 {onDocumentSelect && (
                   <button
                     onClick={() => onDocumentSelect(doc)}
-                    className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs hover:bg-emerald-200"
+                    className={`px-2 py-1 rounded text-xs font-semibold ${
+                      isSelected
+                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                        : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                    }`}
                   >
-                    Select
+                    {isSelected ? "✓ Selected" : "Select"}
                   </button>
                 )}
-                
+
                 <button
                   onClick={() => handleDelete(doc.id, doc.title)}
                   className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs hover:bg-red-200"
@@ -156,7 +190,8 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

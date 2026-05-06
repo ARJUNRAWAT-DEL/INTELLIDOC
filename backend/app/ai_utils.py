@@ -1,7 +1,7 @@
 from __future__ import annotations
 import re
 import math
-from typing import List, Dict, Any, Iterable
+from typing import List, Dict, Any, Iterable, Optional
 
 # PDF / DOCX / TXT extraction (robust fallbacks)
 try:
@@ -27,26 +27,40 @@ except Exception:
     pytesseract = None
 import os
 import shutil
+from copy import deepcopy
 
 from PyPDF2 import PdfReader
 import docx
 import chardet
 
-# Use optimized model manager (import lazily). The model manager requires heavy ML
-# libs (transformers, torch, sentence-transformers). For quick debug runs that
-# only exercise PDF extraction we allow failing to import the manager and fall
-# back to `None` so extraction functions still work.
+# Use model manager lazily. Default to simplified manager for reliability,
+# and allow opting into the full manager via PREFER_FULL_MODEL_MANAGER=true.
 from .logger import logger
 model_manager = None
-try:
-    from .model_manager_simple import model_manager as _mm
-    model_manager = _mm
-except Exception as e:
-    # Avoid failing imports for quick local debug (e.g. running debug_extract.py)
+prefer_full_manager = os.getenv("PREFER_FULL_MODEL_MANAGER", "false").lower() in ("true", "1", "yes")
+
+if prefer_full_manager:
     try:
-        logger.warning(f"Could not import model_manager_simple (heavy ML libs missing): {e}")
-    except Exception:
-        pass
+        from .model_manager import model_manager as _mm
+        model_manager = _mm
+        logger.info("Using full model_manager (PREFER_FULL_MODEL_MANAGER=true)")
+    except Exception as e:
+        try:
+            logger.warning(f"Could not import full model_manager, falling back to simplified manager: {e}")
+        except Exception:
+            pass
+
+if model_manager is None:
+    try:
+        from .model_manager_simple import model_manager as _mm
+        model_manager = _mm
+    except Exception as e2:
+        # Avoid failing imports for quick local debug (e.g. running debug_extract.py)
+        try:
+            logger.warning(f"Could not import model_manager_simple (heavy ML libs missing): {e2}")
+        except Exception:
+            pass
+        model_manager = None
 
 # =========================
 # Utilities
@@ -56,6 +70,30 @@ def clean_text(text: str) -> str:
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+
+def _detect_page_marker(text: str) -> tuple[Optional[int], Optional[int], str]:
+    match = re.match(r"^\[\[PAGE:(\d+)\|PARA:(\d+)\]\]\s*(.*)$", text or "", re.DOTALL)
+    if not match:
+        return None, None, text
+    page_number = int(match.group(1))
+    paragraph_number = int(match.group(2))
+    clean = match.group(3).strip()
+    return page_number, paragraph_number, clean
+
+
+def strip_chunk_metadata(text: str) -> str:
+    _, _, clean = _detect_page_marker(text)
+    return clean
+
+
+def parse_chunk_metadata(text: str) -> Dict[str, Any]:
+    page_number, paragraph_number, clean = _detect_page_marker(text)
+    return {
+        "text": clean,
+        "page_number": page_number,
+        "paragraph_number": paragraph_number,
+    }
 
 # =========================
 # Extraction
@@ -165,6 +203,36 @@ def extract_text_from_file(filepath: str) -> str:
 
     return ""
 
+
+def extract_pages_from_file(filepath: str) -> List[Dict[str, Any]]:
+    """Extract text page-by-page where possible."""
+    if filepath.lower().endswith(".pdf"):
+        pages: List[Dict[str, Any]] = []
+        if pdfplumber is not None:
+            try:
+                with pdfplumber.open(filepath) as pdf:
+                    for index, page in enumerate(pdf.pages, start=1):
+                        pages.append({"page_number": index, "text": clean_text(page.extract_text() or "")})
+                if pages:
+                    return pages
+            except Exception:
+                logger.exception(f"pdfplumber page extraction failed for {filepath}")
+
+        try:
+            reader = PdfReader(filepath)
+            for index, page in enumerate(reader.pages, start=1):
+                pages.append({"page_number": index, "text": clean_text(page.extract_text() or "")})
+            if pages:
+                return pages
+        except Exception:
+            logger.exception(f"PyPDF2 page extraction failed for {filepath}")
+
+    # Non-PDF fallback: treat the document as a single logical page
+    extracted = extract_text_from_file(filepath)
+    if extracted:
+        return [{"page_number": 1, "text": extracted}]
+    return []
+
 # =========================
 # Chunking
 # =========================
@@ -205,6 +273,19 @@ def smart_chunks(text: str, chunk_size: int = 800, overlap: int = 120) -> List[s
         chunks.append(" ".join(buff).strip())
     return chunks
 
+
+def _chunk_page_text(page_text: str, page_number: int, chunk_size: int, overlap: int) -> List[Dict[str, Any]]:
+    page_chunks = smart_chunks(page_text, chunk_size, overlap)
+    chunk_rows: List[Dict[str, Any]] = []
+    for paragraph_number, chunk in enumerate(page_chunks, start=1):
+        chunk_rows.append({
+            "text": f"[[PAGE:{page_number}|PARA:{paragraph_number}]] {chunk}",
+            "page_number": page_number,
+            "paragraph_number": paragraph_number,
+            "clean_text": chunk,
+        })
+    return chunk_rows
+
 # =========================
 # Embeddings
 # =========================
@@ -214,32 +295,62 @@ def generate_embedding(text: str) -> List[float]:
 
 def generate_embeddings_in_chunks(text: str, chunk_size: int = 800, overlap: int = 120) -> List[Dict[str, Any]]:
     """Generate embeddings for text chunks efficiently with optimized batching for large documents"""
-    chunks = smart_chunks(text, chunk_size, overlap)
-    
-    if not chunks:
+    return generate_embeddings_in_pages([{"page_number": 1, "text": text}], chunk_size, overlap)
+
+
+def generate_embeddings_in_pages(pages: List[Dict[str, Any]], chunk_size: int = 1200, overlap: int = 200) -> List[Dict[str, Any]]:
+    """Generate embeddings for page-aware chunks efficiently with optimized batching for SPEED"""
+    if not pages:
         return []
+
+    chunk_rows: List[Dict[str, Any]] = []
+    for page in pages:
+        page_number = int(page.get("page_number") or len(chunk_rows) + 1)
+        page_text = (page.get("text") or "").strip()
+        if not page_text:
+            continue
+        chunk_rows.extend(_chunk_page_text(page_text, page_number, chunk_size, overlap))
+
+    if not chunk_rows:
+        return []
+
+    clean_chunks = [row["clean_text"] for row in chunk_rows]
     
-    # For very large documents, prioritize accuracy over speed
-    if len(chunks) > 100:  # Large document with many chunks
-        logger.info(f"Processing {len(chunks)} chunks with maximum accuracy settings for large document")
-        batch_size = 50  # Reduced batch size for better quality
-        all_embeddings = []
-        
-        # Sequential processing for maximum accuracy (no concurrent processing)
-        for i in range(0, len(chunks), batch_size):
-            batch_chunks = chunks[i:i + batch_size]
+    # OPTIMIZED: Use larger batch sizes for faster throughput
+    if len(clean_chunks) > 256:
+        logger.info(f"Processing {len(clean_chunks)} chunks with OPTIMIZED batch size (128) for maximum speed")
+        batch_size = 128  # INCREASED from 50 to 128
+        all_embeddings: List[List[float]] = []
+        total_batches = (len(clean_chunks) + batch_size - 1) // batch_size
+        for batch_idx, i in enumerate(range(0, len(clean_chunks), batch_size)):
+            batch_chunks = clean_chunks[i:i + batch_size]
             batch_embeddings = model_manager.generate_embeddings_batch(batch_chunks)
             all_embeddings.extend(batch_embeddings)
-            logger.info(f"Processed batch {i//batch_size + 1}/{(len(chunks) + batch_size - 1)//batch_size} with high accuracy settings")
-        
-        return [{"text": chunk, "embedding": emb} for chunk, emb in zip(chunks, all_embeddings)]
-    
-    # Standard batch processing for smaller documents
-    elif len(chunks) > 1:
-        embeddings = model_manager.generate_embeddings_batch(chunks)
-        return [{"text": chunk, "embedding": emb} for chunk, emb in zip(chunks, embeddings)]
+            logger.info(f"✓ Batch {batch_idx + 1}/{total_batches} processed ({len(batch_chunks)} chunks) - {((batch_idx + 1) / total_batches * 100):.0f}%")
+    elif len(clean_chunks) > 64:
+        logger.info(f"Processing {len(clean_chunks)} chunks with standard batch size (64)")
+        batch_size = 64
+        all_embeddings: List[List[float]] = []
+        for batch_idx, i in enumerate(range(0, len(clean_chunks), batch_size)):
+            batch_chunks = clean_chunks[i:i + batch_size]
+            batch_embeddings = model_manager.generate_embeddings_batch(batch_chunks)
+            all_embeddings.extend(batch_embeddings)
+    elif len(clean_chunks) > 1:
+        logger.info(f"Processing {len(clean_chunks)} chunks with single batch")
+        all_embeddings = model_manager.generate_embeddings_batch(clean_chunks)
     else:
-        return [{"text": chunks[0], "embedding": generate_embedding(chunks[0])}]
+        all_embeddings = [generate_embedding(clean_chunks[0])]
+
+    result: List[Dict[str, Any]] = []
+    for row, embedding in zip(chunk_rows, all_embeddings):
+        result.append({
+            "text": row["text"],
+            "embedding": embedding,
+            "page_number": row["page_number"],
+            "paragraph_number": row["paragraph_number"],
+            "clean_text": row["clean_text"],
+        })
+    return result
 
 # =========================
 # Re-ranking
@@ -289,12 +400,36 @@ def clean_answer(query: str, answer: str) -> str:
     # Allow longer, more detailed answers
     return answer.strip()
 
-def synthesize_answer(query: str, contexts: List[Dict[str, Any]]) -> str:
+def synthesize_answer(
+    query: str,
+    contexts: List[Dict[str, Any]],
+    answer_length: str = "balanced",
+    answer_mode: str = "summary"
+) -> str:
     """Synthesize answer from contexts using model manager"""
     context_text = "\n\n".join([c['text'] for c in contexts[:8]])  # Increased to 8 for maximum accuracy
 
+    length_instructions = {
+        "short": "Keep the answer to 3-5 lines.",
+        "balanced": "Give a clear explanation with key points.",
+        "detailed": "Give a detailed answer with sections, bullet points, and citations when possible.",
+    }
+    mode_instructions = {
+        "summary": "Focus on summarizing the document context.",
+        "qa": "Answer the user's question directly and precisely.",
+        "keypoints": "Return the key points in bullet form.",
+        "pageexplanation": "Explain the selected page or page range in plain language.",
+        "actionitems": "Extract actionable items, deadlines, and follow-ups.",
+    }
+
+    instruction_block = (
+        f"Answer mode: {mode_instructions.get(answer_mode, mode_instructions['summary'])}\n"
+        f"Answer length: {length_instructions.get(answer_length, length_instructions['balanced'])}\n"
+        "Always stay grounded in the provided context and cite page numbers when available."
+    )
+
     # Handle summaries
-    if "summary" in query.lower():
+    if answer_mode == "summary" or "summary" in query.lower():
         full_text = " ".join(c['text'] for c in contexts)
         return generate_summary(full_text)
 
@@ -318,7 +453,8 @@ def synthesize_answer(query: str, contexts: List[Dict[str, Any]]) -> str:
     # Use model manager for answer generation
     context_texts = [c['text'] for c in contexts[:8]]  # Increased to 8 for maximum accuracy
     logger.info(f"Generating answer for query: '{query}' with {len(context_texts)} contexts")
-    raw_answer = model_manager.generate_answer(query, context_texts)
+    formatted_query = f"{query}\n\n{instruction_block}"
+    raw_answer = model_manager.generate_answer(formatted_query, context_texts)
     logger.info(f"Generated raw answer: '{raw_answer[:100]}...' (length: {len(raw_answer)})")
     cleaned_answer = clean_answer(query, raw_answer)
     logger.info(f"Final cleaned answer: '{cleaned_answer[:100]}...' (length: {len(cleaned_answer)})")

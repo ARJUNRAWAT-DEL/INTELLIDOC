@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800&family=Syne:wght@700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800&family=Syne:wght@700;800&display=swap");
 
 /* stylelint-disable at-rule-no-unknown */
 @tailwind base;
@@ -18,7 +18,7 @@
   --accent-blue: #3b82f6;
   --accent-cyan: #06b6d4;
   --accent-purple: #a855f7;
-  
+
   /* Legacy tokens for compatibility */
   --demo-pink-1: #e6f6ff;
   --demo-pink-2: #d7eefc;
@@ -38,7 +38,13 @@
   --muted-600: #6b7280;
   --text-900: #06202a;
 
-  font-family: 'Inter var', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    "Inter var",
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   line-height: 1.6;
   font-weight: 400;
   color-scheme: light dark;
@@ -52,17 +58,20 @@
 
 @supports (font-variation-settings: normal) {
   :root {
-    font-family: 'Inter var', 'Inter', sans-serif;
+    font-family: "Inter var", "Inter", sans-serif;
   }
 }
 
 /* Display font for large headings */
 :root {
-  --display-font: 'Syne', 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --display-font:
+    "Syne", "Poppins", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 /* Strong display heading style */
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-family: var(--display-font);
   letter-spacing: -0.02em;
   font-weight: 800;
@@ -76,9 +85,178 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  font-family: 'Inter var', sans-serif;
-  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+  font-family: "Inter var", sans-serif;
+  background: #01030a;
   color: var(--text-900);
+}
+
+/* ============ SOLAR SYSTEM BACKGROUND ============ */
+.solar-bg {
+  background:
+    radial-gradient(
+      circle at 12% 35%,
+      rgba(255, 130, 20, 0.45),
+      transparent 18%
+    ),
+    radial-gradient(
+      circle at 70% 25%,
+      rgba(80, 150, 255, 0.35),
+      transparent 8%
+    ),
+    radial-gradient(
+      circle at 82% 65%,
+      rgba(190, 90, 255, 0.32),
+      transparent 7%
+    ),
+    radial-gradient(
+      circle at 38% 72%,
+      rgba(255, 190, 70, 0.28),
+      transparent 6%
+    ),
+    #01030a;
+}
+
+.planet {
+  position: absolute;
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.sun {
+  width: 120px;
+  height: 120px;
+  left: 5%;
+  top: 30%;
+  background: radial-gradient(circle, #ffd27a, #ff7a18, #7a2600);
+  box-shadow: 0 0 80px rgba(255, 120, 20, 0.8);
+}
+
+.earth {
+  width: 52px;
+  height: 52px;
+  right: 22%;
+  top: 22%;
+  background: radial-gradient(circle at 30% 30%, #9de7ff, #2563eb, #081a4d);
+  box-shadow: 0 0 35px rgba(80, 160, 255, 0.65);
+}
+
+.purple {
+  width: 46px;
+  height: 46px;
+  right: 12%;
+  top: 58%;
+  background: radial-gradient(circle at 30% 30%, #f0abfc, #7c3aed, #1e103d);
+  box-shadow: 0 0 35px rgba(168, 85, 247, 0.6);
+}
+
+.gold {
+  width: 38px;
+  height: 38px;
+  left: 36%;
+  top: 72%;
+  background: radial-gradient(circle at 30% 30%, #fde68a, #f59e0b, #3b1d02);
+  box-shadow: 0 0 28px rgba(245, 158, 11, 0.6);
+}
+
+/* Additional planets for full 7-planet background */
+.mercury {
+  width: 22px;
+  height: 22px;
+  left: 12%;
+  top: 18%;
+  background: radial-gradient(circle at 30% 30%, #dddcdc, #9b9b9b, #4b4b4b);
+  box-shadow: 0 0 12px rgba(200, 200, 200, 0.25);
+  opacity: 0.95;
+}
+
+.venus {
+  width: 30px;
+  height: 30px;
+  left: 22%;
+  top: 40%;
+  background: radial-gradient(circle at 30% 30%, #fff1c9, #f6c36d, #b36a00);
+  box-shadow: 0 0 18px rgba(246, 195, 109, 0.28);
+}
+
+.mars {
+  width: 36px;
+  height: 36px;
+  right: 6%;
+  top: 12%;
+  background: radial-gradient(circle at 30% 30%, #ffcfbf, #dc2626, #5b0b00);
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.22);
+}
+
+.jupiter {
+  width: 86px;
+  height: 86px;
+  left: 68%;
+  bottom: 8%;
+  background: radial-gradient(circle at 30% 30%, #f8e6d0, #d9822b, #5a310e);
+  box-shadow: 0 0 60px rgba(218, 135, 66, 0.22);
+}
+
+.saturn {
+  width: 72px;
+  height: 72px;
+  left: 50%;
+  top: 8%;
+  background: radial-gradient(circle at 30% 30%, #fff3d6, #f59e0b, #3b1d02);
+  box-shadow: 0 0 46px rgba(245, 158, 11, 0.18);
+}
+
+.neptune {
+  width: 44px;
+  height: 44px;
+  left: 82%;
+  top: 44%;
+  background: radial-gradient(circle at 30% 30%, #bfe9ff, #0ea5a, #012a3a);
+  box-shadow: 0 0 28px rgba(14, 165, 233, 0.22);
+}
+
+/* Gentle orbits for depth */
+.orbit.small {
+  width: 120px;
+  height: 120px;
+  left: 8%;
+  top: 10%;
+  opacity: 0.08;
+}
+.orbit.medium {
+  width: 280px;
+  height: 280px;
+  left: 18%;
+  top: 20%;
+  opacity: 0.06;
+  animation-duration: 60s;
+}
+.orbit.large {
+  width: 520px;
+  height: 520px;
+  left: 12%;
+  top: 8%;
+  opacity: 0.04;
+  animation-duration: 90s;
+}
+
+.planet {
+  animation: blob 10s ease-in-out infinite;
+}
+
+.orbit {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  animation: rotateOrbit 45s linear infinite;
+}
+
+@keyframes rotateOrbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ============ PREMIUM ANIMATIONS ============ */
@@ -92,7 +270,8 @@ body {
 }
 
 @keyframes float-up {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -101,7 +280,8 @@ body {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -119,16 +299,20 @@ body {
 }
 
 @keyframes glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
   }
   50% {
-    box-shadow: 0 0 40px rgba(212, 175, 55, 0.6), 0 0 60px rgba(212, 175, 55, 0.4);
+    box-shadow:
+      0 0 40px rgba(212, 175, 55, 0.6),
+      0 0 60px rgba(212, 175, 55, 0.4);
   }
 }
 
 @keyframes glow-blue {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
   }
   50% {
@@ -137,7 +321,8 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.8;
     transform: scale(1);
   }
@@ -160,7 +345,8 @@ body {
 }
 
 @keyframes bounce-gentle {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -178,14 +364,23 @@ body {
 }
 
 @keyframes blob {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(-12px, -8px) scale(1.05); }
-  66% { transform: translate(8px, -6px) scale(0.98); }
-  100% { transform: translate(0px, 0px) scale(1); }
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(-12px, -8px) scale(1.05);
+  }
+  66% {
+    transform: translate(8px, -6px) scale(0.98);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
 }
 
 @keyframes workspace-breathe {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1) translateY(0px);
   }
   50% {
@@ -194,23 +389,45 @@ body {
 }
 
 @keyframes slide-up-fade {
-  0% { opacity: 0; transform: translateY(14px) scale(0.995); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes fade-in {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-in-left {
-  0% { opacity: 0; transform: translateX(-30px); }
-  100% { opacity: 1; transform: translateX(0); }
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slide-in-right {
-  0% { opacity: 0; transform: translateX(30px); }
-  100% { opacity: 1; transform: translateX(0); }
+  0% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes parallax-slow {
@@ -223,14 +440,26 @@ body {
 }
 
 @keyframes ken-burns {
-  0% { transform: scale(1) translateY(0px) translateX(0px); }
-  50% { transform: scale(1.06) translateY(-6px) translateX(-4px); }
-  100% { transform: scale(1) translateY(0px) translateX(0px); }
+  0% {
+    transform: scale(1) translateY(0px) translateX(0px);
+  }
+  50% {
+    transform: scale(1.06) translateY(-6px) translateX(-4px);
+  }
+  100% {
+    transform: scale(1) translateY(0px) translateX(0px);
+  }
 }
 
 @keyframes text-fade-in-up {
-  0% { opacity: 0; transform: translateY(8px) scale(0.995); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes light-sweep {
@@ -361,7 +590,7 @@ body {
 }
 
 .enter-slide-up {
-  animation: slide-up-fade 700ms cubic-bezier(.2,.9,.2,1) both;
+  animation: slide-up-fade 700ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
 }
 
 /* ============ GLASSMORPHISM & PREMIUM EFFECTS ============ */
@@ -475,7 +704,7 @@ body {
 
 /* ============ INTERACTIVE ELEMENTS ============ */
 .hover-lift {
-  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .hover-lift:hover {
@@ -500,13 +729,18 @@ body {
 }
 
 .btn-premium::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
   transition: left 0.5s ease;
 }
 
@@ -540,7 +774,15 @@ textarea:focus {
 }
 
 .gradient-text-rainbow {
-  background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #fd79a8);
+  background: linear-gradient(
+    135deg,
+    #ff6b6b,
+    #4ecdc4,
+    #45b7d1,
+    #96ceb4,
+    #ffeaa7,
+    #fd79a8
+  );
   background-size: 400% 400%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -557,7 +799,7 @@ textarea:focus {
 
 /* ============ PHONE MOCKUP STYLING ============ */
 .phone-overlay-text {
-  animation: text-fade-in-up 900ms cubic-bezier(.2,.9,.2,1) both;
+  animation: text-fade-in-up 900ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
   font-weight: 700;
   color: #000000;
   text-align: center;
@@ -565,7 +807,7 @@ textarea:focus {
 }
 
 .phone-overlay-top {
-  animation: text-fade-in-up 900ms cubic-bezier(.2,.9,.2,1) both;
+  animation: text-fade-in-up 900ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
   font-family: var(--display-font);
   font-weight: 800;
   color: #000000;
@@ -574,32 +816,40 @@ textarea:focus {
   border-radius: 0.5rem;
   font-size: 1rem;
   line-height: 1.05;
-  text-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  text-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   backdrop-filter: blur(4px) brightness(0.98);
 }
 
 .phone-overlay-hero {
-  animation: text-fade-in-up 900ms cubic-bezier(.2,.9,.2,1) both;
+  animation: text-fade-in-up 900ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
   font-family: var(--display-font);
   font-weight: 800;
-  color: #F5F7FA;
+  color: #f5f7fa;
   text-align: center;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   font-size: 1.125rem;
   line-height: 1.05;
-  text-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
 .phone-gradient-top {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(2,6,23,0.45) 25%, rgba(2,6,23,0.18) 45%, rgba(2,6,23,0) 70%);
+  background: linear-gradient(
+    180deg,
+    rgba(2, 6, 23, 0.72) 0%,
+    rgba(2, 6, 23, 0.45) 25%,
+    rgba(2, 6, 23, 0.18) 45%,
+    rgba(2, 6, 23, 0) 70%
+  );
   pointer-events: none;
 }
 
 .phone-outer-shadow {
-  box-shadow: 0 28px 60px -20px rgba(10,20,40,0.4), 0 12px 30px -10px rgba(10,20,40,0.25);
+  box-shadow:
+    0 28px 60px -20px rgba(10, 20, 40, 0.4),
+    0 12px 30px -10px rgba(10, 20, 40, 0.25);
 }
 
 .phone-frame-rounded {
@@ -679,7 +929,12 @@ textarea:focus {
   --muted-600: #6b7280;
   --text-900: #06202a;
 
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light;
@@ -693,7 +948,8 @@ textarea:focus {
 
 /* Display font for large headings */
 :root {
-  --display-font: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --display-font:
+    "Poppins", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 /* Strong display heading style to match reference */
@@ -707,9 +963,14 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   /* Demo: soft pink landing background */
-  background: linear-gradient(180deg, var(--demo-pink-1) 0%, var(--demo-pink-2) 40%, var(--demo-pink-3) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--demo-pink-1) 0%,
+    var(--demo-pink-2) 40%,
+    var(--demo-pink-3) 100%
+  );
   color: var(--text-900);
 }
 
@@ -722,7 +983,8 @@ body {
 
 /* Custom Animation Classes */
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -740,16 +1002,20 @@ body {
 }
 
 @keyframes glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
   }
   50% {
-    box-shadow: 0 0 40px rgba(139, 92, 246, 0.6), 0 0 60px rgba(139, 92, 246, 0.4);
+    box-shadow:
+      0 0 40px rgba(139, 92, 246, 0.6),
+      0 0 60px rgba(139, 92, 246, 0.4);
   }
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.8;
     transform: scale(1);
   }
@@ -772,7 +1038,8 @@ body {
 }
 
 @keyframes bounce-gentle {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -790,14 +1057,23 @@ body {
 }
 
 @keyframes blob {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(-12px, -8px) scale(1.05); }
-  66% { transform: translate(8px, -6px) scale(0.98); }
-  100% { transform: translate(0px, 0px) scale(1); }
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(-12px, -8px) scale(1.05);
+  }
+  66% {
+    transform: translate(8px, -6px) scale(0.98);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
 }
 
 @keyframes workspace-breathe {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1) translateY(0px);
   }
   50% {
@@ -807,12 +1083,18 @@ body {
 
 /* entrance animation: slide up + fade */
 @keyframes slide-up-fade {
-  0% { opacity: 0; transform: translateY(14px) scale(0.995); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .enter-slide-up {
-  animation: slide-up-fade 700ms cubic-bezier(.2,.9,.2,1) both;
+  animation: slide-up-fade 700ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
 }
 
 @keyframes parallax-slow {
@@ -826,14 +1108,26 @@ body {
 
 /* Ken Burns: slow scale + translate for background images */
 @keyframes ken-burns {
-  0% { transform: scale(1) translateY(0px) translateX(0px); }
-  50% { transform: scale(1.06) translateY(-6px) translateX(-4px); }
-  100% { transform: scale(1) translateY(0px) translateX(0px); }
+  0% {
+    transform: scale(1) translateY(0px) translateX(0px);
+  }
+  50% {
+    transform: scale(1.06) translateY(-6px) translateX(-4px);
+  }
+  100% {
+    transform: scale(1) translateY(0px) translateX(0px);
+  }
 }
 
 @keyframes text-fade-in-up {
-  0% { opacity: 0; transform: translateY(8px) scale(0.995); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .ken-burns {
@@ -842,7 +1136,7 @@ body {
 }
 
 .phone-overlay-text {
-  animation: text-fade-in-up 900ms cubic-bezier(.2,.9,.2,1) both;
+  animation: text-fade-in-up 900ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
   font-weight: 700;
   color: #000000;
   text-align: center;
@@ -851,7 +1145,7 @@ body {
 
 /* Overlay variant that sits at the top of the phone and uses the display font */
 .phone-overlay-top {
-  animation: text-fade-in-up 900ms cubic-bezier(.2,.9,.2,1) both;
+  animation: text-fade-in-up 900ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
   font-family: var(--display-font);
   font-weight: 800;
   color: #000000;
@@ -860,35 +1154,43 @@ body {
   border-radius: 0.5rem;
   font-size: 1rem;
   line-height: 1.05;
-  text-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  text-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   backdrop-filter: blur(4px) brightness(0.98);
 }
 
 /* New hero overlay centered variant for better contrast */
 .phone-overlay-hero {
-  animation: text-fade-in-up 900ms cubic-bezier(.2,.9,.2,1) both;
+  animation: text-fade-in-up 900ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
   font-family: var(--display-font);
   font-weight: 800;
-  color: #F5F7FA; /* soft white */
+  color: #f5f7fa; /* soft white */
   text-align: center;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   font-size: 1.125rem;
   line-height: 1.05;
-  text-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
 /* Gradient overlay to darken top and mid area for text legibility */
 .phone-gradient-top {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(2,6,23,0.45) 25%, rgba(2,6,23,0.18) 45%, rgba(2,6,23,0) 70%);
+  background: linear-gradient(
+    180deg,
+    rgba(2, 6, 23, 0.72) 0%,
+    rgba(2, 6, 23, 0.45) 25%,
+    rgba(2, 6, 23, 0.18) 45%,
+    rgba(2, 6, 23, 0) 70%
+  );
   pointer-events: none;
 }
 
 /* Subtle outer phone shadow for depth */
 .phone-outer-shadow {
-  box-shadow: 0 28px 60px -20px rgba(10,20,40,0.4), 0 12px 30px -10px rgba(10,20,40,0.25);
+  box-shadow:
+    0 28px 60px -20px rgba(10, 20, 40, 0.4),
+    0 12px 30px -10px rgba(10, 20, 40, 0.25);
 }
 
 /* Slightly reduced corner radius for a more realistic modern phone */
@@ -1147,7 +1449,15 @@ textarea:focus {
 }
 
 .gradient-text-rainbow {
-  background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #fd79a8);
+  background: linear-gradient(
+    135deg,
+    #ff6b6b,
+    #4ecdc4,
+    #45b7d1,
+    #96ceb4,
+    #ffeaa7,
+    #fd79a8
+  );
   background-size: 400% 400%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
