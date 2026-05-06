@@ -6,6 +6,30 @@
 
 A modern, premium AI-powered document intelligence platform that instantly summarizes, searches, and extracts insights from any document. Built with a stunning Midnight Neon AI aesthetic and interactive micro UI demonstrations.
 
+---
+
+## 📌 Thesis Project Summary
+
+**INTELLIDOC** is a thesis project that addresses the challenge of information overload in document-heavy environments. Reading and extracting key insights from large volumes of PDFs, reports, and Word documents is time-consuming and error-prone for researchers, students, and professionals.
+
+**Problem Solved:** Manually reading long documents to find specific information wastes significant time. Keyword-based search misses contextually relevant content because it matches exact words rather than meaning.
+
+**Technical Approach:**
+- Documents are uploaded and split into overlapping text chunks, which are then converted into 384-dimensional vector embeddings using a Sentence Transformer model.
+- These embeddings are stored in a PostgreSQL database with the pgvector extension, enabling fast cosine-similarity search.
+- When a user types a natural-language question, the query is embedded and matched against stored vectors to retrieve the most relevant document passages.
+- A cross-encoder re-ranker refines the top results, and a BART-based summarization model (or GROQ-powered LLM) synthesizes a final, readable answer with source citations.
+- The system also generates an automatic AI summary for every uploaded document.
+
+**Key Outcomes:**
+- Users can upload any PDF, DOCX, or TXT file and receive an AI-generated summary within seconds.
+- Semantic search lets users ask questions in plain English and get precise, contextual answers instead of a list of keyword matches.
+- A dual-answer architecture (local transformer models + GROQ cloud LLM) provides a baseline for comparing answer quality between on-device and cloud AI.
+
+**Stack:** FastAPI · PostgreSQL + pgvector · Sentence Transformers · BART · Llama 3 / Mistral (GROQ) · React 18 · TypeScript · Vite · Tailwind CSS · Framer Motion
+
+---
+
 ## Overview
 
 INTELLIDOC combines intelligent document processing with a beautiful, modern web experience:
