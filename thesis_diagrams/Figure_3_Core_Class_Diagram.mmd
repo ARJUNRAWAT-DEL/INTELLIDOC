@@ -1,0 +1,38 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily':'Trebuchet MS','primaryColor':'#EEF2FF','primaryBorderColor':'#4338CA','primaryTextColor':'#1E1B4B','lineColor':'#6366F1'}}}%%
+classDiagram
+    class Document {
+      +id: UUID
+      +filename: string
+      +mimeType: string
+      +status: string
+      +uploadedAt: datetime
+    }
+    class ExtractedContent {
+      +documentId: UUID
+      +plainText: text
+      +layoutJson: json
+      +confidenceAvg: float
+    }
+    class AnalysisResult {
+      +documentId: UUID
+      +summary: text
+      +keywords: string[]
+      +riskFlags: string[]
+      +createdAt: datetime
+    }
+    class SearchIndex {
+      +documentId: UUID
+      +embeddingId: string
+      +chunkCount: int
+    }
+    class AuditLog {
+      +actor: string
+      +action: string
+      +targetId: UUID
+      +timestamp: datetime
+    }
+
+    Document "1" --> "1" ExtractedContent : owns
+    Document "1" --> "1" AnalysisResult : generates
+    Document "1" --> "1" SearchIndex : indexed_as
+    Document "1" --> "*" AuditLog : tracked_by

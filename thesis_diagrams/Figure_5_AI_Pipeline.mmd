@@ -1,0 +1,26 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily':'Trebuchet MS','primaryColor':'#E0F2FE','primaryBorderColor':'#0369A1','primaryTextColor':'#0C4A6E','lineColor':'#0284C7','secondaryColor':'#FCE7F3','tertiaryColor':'#ECFCCB'}}}%%
+flowchart LR
+    A[Document Intake] --> B[OCR + Structure Parsing]
+    B --> C[Normalization + Chunking]
+    C --> D[Embedding Generation]
+    D --> E[(Vector Storage)]
+    E --> F[Candidate Retrieval]
+    F --> G[Context Re-ranking]
+    G --> H[Answer Synthesis]
+    H --> I[Insight Delivery]
+
+    Q1{{Low confidence?}} -->|Yes| R1[Human review queue]
+    B --> Q1
+    R1 --> C
+
+    style A fill:#DBEAFE,stroke:#1D4ED8,color:#1E3A8A
+    style B fill:#FEF3C7,stroke:#D97706,color:#92400E
+    style C fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    style D fill:#EDE9FE,stroke:#7C3AED,color:#4C1D95
+    style E fill:#FCE7F3,stroke:#DB2777,color:#831843
+    style F fill:#E0F2FE,stroke:#0284C7,color:#0C4A6E
+    style G fill:#ECFCCB,stroke:#65A30D,color:#3F6212
+    style H fill:#FFE4E6,stroke:#E11D48,color:#881337
+    style I fill:#DBEAFE,stroke:#2563EB,color:#1E40AF
+    style Q1 fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    style R1 fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D

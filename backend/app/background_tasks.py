@@ -80,6 +80,9 @@ def process_document_async(
         # Extract text
         ai_backend = get_ai_utils()
         content = ai_backend.extract_text_from_file(file_path)
+        pages = []
+        if hasattr(ai_backend, "extract_pages_from_file"):
+            pages = ai_backend.extract_pages_from_file(file_path)
         if not content or not content.strip():
             # Provide a more actionable failure message so frontend/users know why upload "succeeds"
             # but processing fails. Common causes: image-only (scanned) PDFs and missing OCR
@@ -109,12 +112,19 @@ def process_document_async(
 
         update_task_status(task_id, "processing", 60, "Summary generated, creating embeddings")
 
-        # Generate embeddings
-        chunk_data = ai_backend.generate_embeddings_in_chunks(
-            content,
-            chunk_size=settings.chunk_size,
-            overlap=settings.chunk_overlap
-        )
+        # Generate embeddings with page metadata when available
+        if pages and hasattr(ai_backend, "generate_embeddings_in_pages"):
+            chunk_data = ai_backend.generate_embeddings_in_pages(
+                pages,
+                chunk_size=settings.chunk_size,
+                overlap=settings.chunk_overlap
+            )
+        else:
+            chunk_data = ai_backend.generate_embeddings_in_chunks(
+                content,
+                chunk_size=settings.chunk_size,
+                overlap=settings.chunk_overlap
+            )
         if not chunk_data:
             update_task_status(task_id, "failed", 0, "Embedding generation failed")
             return

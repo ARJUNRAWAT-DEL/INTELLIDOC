@@ -1,200 +1,106 @@
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useState } from 'react';
-import ScreenshotCard from './ScreenshotCard';
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import MobileMockup from "./MobileMockup";
 
 const Hero = () => {
   const navigate = useNavigate();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-    },
-  };
-
-  // Track mouse for parallax effect
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left - rect.width / 2) / 50;
-    const y = (e.clientY - rect.top - rect.height / 2) / 50;
-    setMousePosition({ x, y });
-  };
 
   return (
-    <section className="relative py-20 md:py-28 lg:py-32 overflow-hidden">
-      {/* === LAYER 1: Background Glows === */}
-      <div className="absolute -top-32 left-1/4 w-96 h-96 bg-indigo-500/8 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -top-20 right-0 w-96 h-96 bg-violet-500/6 rounded-full blur-3xl pointer-events-none" />
+    <section className="relative min-h-screen w-full flex items-center pt-32 md:pt-24 lg:pt-20 pb-12 md:pb-16 lg:pb-20 px-6 lg:px-8 overflow-hidden">
+      <div className="w-full max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+          <div className="space-y-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100 backdrop-blur-sm">
+              <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_16px_rgba(56,189,248,0.7)]" />
+              AI-Powered Intelligence
+            </div>
 
-      {/* === LAYER 2: Subtle Grain Texture === */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: `
-            url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" /></filter><rect width="100" height="100" fill="%23000" filter="url(%23noise)" opacity="0.04" /></svg>')
-          `,
-          backgroundSize: '100px 100px',
-        }}
-      />
-
-      <div className="relative max-w-7xl mx-auto px-6 lg:px-8 z-10" onMouseMove={handleMouseMove}>
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16 items-center">
-          {/* Left content */}
-          <motion.div 
-            className="space-y-6 lg:col-span-3 lg:pr-8"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Badge */}
-            <motion.div 
-              variants={itemVariants}
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/30 hover:border-indigo-500/50 transition-colors"
-            >
-              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" />
-              <span className="text-sm font-medium text-indigo-300 tracking-wide">Trusted by legal teams & enterprises</span>
-            </motion.div>
-
-            {/* === Main Heading with Gradient Animation === */}
-            <motion.div variants={itemVariants}>
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 text-white" style={{ letterSpacing: '-0.02em' }}>
-                Extract Insights from
-                <motion.span
-                  className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400"
-                  animate={{
-                    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-                  }}
-                  transition={{
-                    duration: 6,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
-                  style={{
-                    backgroundSize: '200% 200%',
-                  }}
-                >
-                  Any Document
-                </motion.span>
-                in Seconds
-              </h1>
-            </motion.div>
-
-            {/* Enhanced Description */}
-            <motion.p 
-              variants={itemVariants}
-              className="text-lg md:text-xl text-slate-300 max-w-2xl leading-relaxed"
-            >
-              Upload a 200-page contract and get a 2-minute summary instantly. IntelliDoc reads PDFs, legal documents, research papers — turning hours of reading into seconds of clarity.
-            </motion.p>
-
-            {/* === UPGRADED CTA Buttons === */}
-            <motion.div 
-              variants={itemVariants}
-              className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-6"
-            >
-              {/* Primary Button with Glow & Arrow Animation */}
-              <motion.button 
-                onClick={() => navigate('/summarize')}
-                className="group relative px-8 py-4 rounded-lg bg-indigo-600 text-white font-semibold overflow-hidden hover:bg-indigo-500 transition-colors duration-200"
-                whileTap={{ scale: 0.97 }}
+            <div>
+              <h1
+                className="font-display font-black leading-[0.95] text-white mb-8 max-w-[760px]"
+                style={{ fontSize: "clamp(56px, 6vw, 96px)" }}
               >
-                {/* Button content */}
-                <span className="relative flex items-center gap-2">
-                  Try for Free
-                  <span>→</span>
+                <span className="block">Understand Any</span>
+                <span className="block mt-2">Document with</span>
+                <span className="block mt-2">
+                  <span className="relative inline-flex items-center">
+                    <span className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(94,234,212,0.16),transparent_65%)] blur-2xl opacity-30 -z-10" />
+                    <span className="relative bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-transparent">
+                      AI
+                    </span>
+                  </span>
                 </span>
-              </motion.button>
-              
-              {/* Secondary Button - Glass Style */}
-              <motion.button 
-                className="px-8 py-4 rounded-lg backdrop-blur-md bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/8 hover:border-indigo-400/35 transition-all duration-200"
-                whileTap={{ scale: 0.97 }}
-              >
-                Watch Demo
-              </motion.button>
-            </motion.div>
+              </h1>
 
-            {/* Trust indicators - simple */}
-            <motion.div 
-              variants={itemVariants}
-              className="flex items-center gap-8 pt-10 border-t border-slate-700/50"
-            >
+              <p className="text-lg md:text-xl text-slate-300 max-w-2xl leading-relaxed font-light mt-6">
+                Upload PDFs, contracts, research papers, and reports. Get clear
+                summaries, answers, and citations in seconds.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4">
+              <button
+                onClick={() => navigate("/summarize")}
+                className="group relative px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-2xl hover:shadow-cyan-500/40 overflow-hidden"
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                <span className="relative">Start Summarizing</span>
+                <svg
+                  className="w-5 h-5 group-hover:translate-x-1 transition-transform relative"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </svg>
+              </button>
+
+              <Link
+                to="/how-it-works"
+                className="group px-6 py-4 text-slate-300 font-semibold border-2 border-slate-500 rounded-xl hover:border-slate-300 hover:bg-slate-900/30 hover:text-slate-100 transition-all duration-300 backdrop-blur-sm flex items-center gap-2"
+              >
+                View Demo →
+              </Link>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pt-8 border-t border-slate-700/50">
               {[
-                { value: '10K+', label: 'Documents' },
-                { value: '98%', label: 'Accuracy' },
-                { value: '<2s', label: 'Processing' },
+                { num: "10K+", label: "Docs Processed" },
+                { num: "98%", label: "Accuracy" },
+                { num: "<2s", label: "Processing" },
               ].map((stat, idx) => (
                 <div key={idx}>
-                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">{stat.value}</div>
-                  <p className="text-sm text-slate-400">{stat.label}</p>
+                  <div className="text-xl md:text-2xl font-bold text-white">
+                    {stat.num}
+                  </div>
+                  <p className="text-xs md:text-sm text-slate-400">
+                    {stat.label}
+                  </p>
                 </div>
               ))}
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
-          {/* === Right: Phone Mockup with Enhancements === */}
-          <motion.div 
-            className="flex items-center justify-center lg:col-span-2"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            {/* Phone Mockup with Underglow & Effects */}
-            <motion.div 
-              className="relative"
-              animate={{ 
-                y: [0, -8, 0],
-                rotateY: mousePosition.x * 0.5
-              }}
-              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-              style={{
-                transformPerspective: 1000,
-                transform: `translateX(${mousePosition.x * 2}px) translateY(${mousePosition.y * 2}px)`,
-              }}
+          <div className="flex items-center justify-center">
+            <div
+              className="relative w-full flex justify-center"
+              style={{ perspective: "1000px" }}
             >
-              {/* Underglow effect */}
-              <motion.div
-                className="absolute -inset-6 rounded-2xl bg-gradient-to-t from-purple-500/20 to-transparent blur-2xl pointer-events-none"
-                animate={{ opacity: [0.5, 0.8, 0.5] }}
-                transition={{ duration: 4, repeat: Infinity }}
-              />
-
-              {/* Main card with reflection */}
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 bg-slate-800/40 backdrop-blur-sm">
-                {/* Subtle reflection */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-transparent pointer-events-none rounded-2xl"
-                  animate={{ opacity: [0.3, 0.5, 0.3] }}
-                  transition={{ duration: 5, repeat: Infinity }}
-                />
-                
-                <ScreenshotCard />
+              <div
+                style={{ transform: "perspective(1000px) rotateY(-6deg)" }}
+                className="transition-transform duration-300"
+              >
+                <MobileMockup className="shadow-[0_40px_100px_rgba(0,0,0,0.7)]" />
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* === Section Divider === */}
-      <motion.div
-        className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent"
-        animate={{ opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 4, repeat: Infinity }}
-      />
     </section>
   );
 };

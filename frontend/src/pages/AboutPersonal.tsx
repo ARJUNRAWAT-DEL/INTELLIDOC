@@ -1,20 +1,57 @@
-import React from 'react';
+import React from "react";
 
 const AboutPersonal: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white">
-      <main className="max-w-4xl mx-auto px-6 py-16">
-        <h2 className="text-3xl font-bold mb-4">About me</h2>
-        <p className="text-gray-700 leading-relaxed">I'm a software engineer focused on building AI systems that solve real problems. I have experience in NLP, semantic search, and deploying models to production. My work sits at the intersection of research and product — I enjoy shipping usable tools that help teams make better decisions from documents.</p>
-
-        <section className="mt-8">
-          <h3 className="text-xl font-semibold mb-2">Experience</h3>
-          <ul className="list-disc ml-5 text-gray-700">
-            <li>Built a document intelligence platform with FastAPI, Postgres, and embedding search.</li>
-            <li>Produced production-ready pipelines for extracting, chunking and indexing documents.</li>
-          </ul>
+    <div className="min-h-[calc(100vh-10rem)] text-white">
+      <main className="max-w-6xl mx-auto space-y-10">
+        <section className="max-w-3xl">
+          <p className="text-cyan-200/80 text-sm font-semibold uppercase tracking-[0.3em]">
+            About
+          </p>
+          <h1 className="mt-3 text-4xl md:text-6xl font-extrabold leading-tight">
+            Product-minded engineer building AI tools that feel polished in real
+            workflows.
+          </h1>
+          <p className="mt-4 text-slate-300 text-lg">
+            I focus on document intelligence, retrieval systems, and interfaces
+            that help teams find answers without fighting the tool.
+          </p>
         </section>
-  </main>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl lg:col-span-2">
+            <h2 className="text-2xl font-bold">What I build</h2>
+            <p className="mt-4 text-slate-300">
+              Systems that ingest documents, normalize data, and surface the
+              right answer with context, source links, and clear feedback
+              states.
+            </p>
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-slate-200">
+              {[
+                "Semantic search experiences",
+                "Admin dashboards",
+                "Upload pipelines",
+                "Model-backed summaries",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="rounded-2xl border border-white/10 bg-slate-950/30 p-4"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-cyan-400/10 to-fuchsia-500/10 p-6 backdrop-blur-xl">
+            <h2 className="text-2xl font-bold">Experience</h2>
+            <div className="mt-4 space-y-3 text-sm text-slate-200">
+              <p>• FastAPI backend and database-driven features</p>
+              <p>• React frontends with polished motion and layout</p>
+              <p>• Retrieval, embeddings, and document pipelines</p>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

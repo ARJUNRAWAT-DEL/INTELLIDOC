@@ -1,0 +1,9 @@
+flowchart LR
+  U[User] --> W[Web UI]
+  W --> API[FastAPI Backend]
+  API --> DB[(PostgreSQL)]
+  API --> IDX[(Vector Index)]
+  API --> LLM[Answer Model]
+  API --> OCR[OCR Service]
+  OCR --> IDX
+  IDX --> LLM

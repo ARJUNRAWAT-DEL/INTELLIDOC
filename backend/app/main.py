@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, File, UploadFile, HTTPException, Query, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse, Response
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -20,7 +20,7 @@ import secrets
 from datetime import timedelta
 
 # Relative imports for proper module structure
-from . import db, crud, schemas
+from . import db, crud, schemas, models
 from .config import settings
 from .logger import logger
 from .validators import validate_file
@@ -36,6 +36,7 @@ from . import model_manager_simple  # simplified model manager module (instantia
 model_manager = None  # will be created on startup to avoid heavy import-time work
 from .cache_manager import cache_manager
 from .dual_answer_system import generate_dual_answers
+from .export_service import build_export_payload, generate_export_bytes
 
 # GROQ MCP client for second opinion
 groq_client = None
@@ -756,7 +757,7 @@ def auth_register(payload: dict, db: Session = Depends(get_db)):
     Stores a salted PBKDF2 password hash. Returns a simple token + user on success.
     """
     try:
-        email = (payload or {}).get('email')
+        email = ((payload or {}).get('email') or '').lower().strip()
         password = (payload or {}).get('password')
         name = (payload or {}).get('name')
         if not email or '@' not in email or not password:
@@ -789,7 +790,7 @@ def auth_login(payload: dict, db: Session = Depends(get_db)):
     Login with email + password. Verifies PBKDF2 hash and returns a token + user on success.
     """
     try:
-        email = (payload or {}).get('email')
+        email = ((payload or {}).get('email') or '').lower().strip()
         password = (payload or {}).get('password')
         if not email or not password:
             raise HTTPException(status_code=400, detail='Missing email or password')
@@ -813,6 +814,89 @@ def auth_login(payload: dict, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"auth_login failed: {e}")
         raise HTTPException(status_code=500, detail='Login failed')
+
+
+# Google OAuth: Verify JWT token and create/get user
+@app.post('/auth/google')
+def auth_google(payload: dict, db: Session = Depends(get_db)):
+    """
+    Verify Google OAuth JWT token and create/get user.
+    Expects: { "token": "google_jwt_token", "name": "user_name" }
+    """
+    try:
+        token = (payload or {}).get('token')
+        name = (payload or {}).get('name')
+        if not token:
+            raise HTTPException(status_code=400, detail='Missing token')
+
+        # Decode JWT payload (without verification for now - in production, verify with Google's public key)
+        try:
+            parts = token.split('.')
+            if len(parts) != 3:
+                raise ValueError("Invalid JWT format")
+            # Decode payload
+            payload_b64 = parts[1]
+            # Add padding if needed
+            padding = 4 - len(payload_b64) % 4
+            if padding != 4:
+                payload_b64 += '=' * padding
+            payload_json = json.loads(__import__('base64').urlsafe_b64decode(payload_b64))
+            email = (payload_json.get('email') or '').lower().strip()
+            if not email:
+                raise ValueError("No email in token")
+        except Exception as e:
+            logger.error(f"Failed to decode Google token: {e}")
+            raise HTTPException(status_code=400, detail='Invalid token')
+
+        # Get or create user
+        user = crud.get_user_by_email(db, email)
+        if not user:
+            # Create new user with OAuth (no password)
+            user = crud.create_user(db, email=email, password_hash='', password_salt='', name=name or payload_json.get('name'))
+
+        auth_token = f"dev-token-{secrets.token_hex(8)}"
+        return JSONResponse({"token": auth_token, "user": {"email": user.email, "name": user.name, "is_admin": email.lower() == "rawatarjun98@gmail.com"}}, status_code=200)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"auth_google failed: {e}")
+        raise HTTPException(status_code=500, detail='Google authentication failed')
+
+
+# Admin verification endpoint
+@app.get('/auth/me')
+def auth_me(request: Request, db: Session = Depends(get_db)):
+    """
+    Get current user info from token (in Authorization header or query param).
+    Returns user data and admin status.
+    """
+    try:
+        # For simplicity, we'll assume the email is passed as a query param or header
+        # In production, this would validate a JWT token
+        email = request.headers.get('X-User-Email') or request.query_params.get('email')
+        if not email:
+            raise HTTPException(status_code=401, detail='No user logged in')
+
+        email = email.lower().strip()
+        user = crud.get_user_by_email(db, email)
+        if not user:
+            raise HTTPException(status_code=404, detail='User not found')
+
+        is_admin = email == "rawatarjun98@gmail.com"
+        return JSONResponse({
+            "user": {
+                "email": user.email,
+                "name": user.name,
+                "is_admin": is_admin
+            }
+        }, status_code=200)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"auth_me failed: {e}")
+        raise HTTPException(status_code=500, detail='Failed to get user info')
+
+
 # Metrics endpoint
 @app.get("/metrics", response_model=schemas.Metrics)
 def get_metrics(db: Session = Depends(get_db)):
@@ -908,6 +992,12 @@ def search_documents(
     limit: int = Query(10, le=50, description="Number of results"),
     offset: int = Query(0, ge=0, description="Results offset"),
     doc_id: Optional[int] = Query(None, description="Search within specific document"),
+    answer_length: str = Query("balanced", description="short|balanced|detailed"),
+    answer_mode: str = Query("summary", description="summary|qa|keypoints|pageexplanation|actionitems"),
+    page_range: str = Query("entire", description="entire|specific|range"),
+    specific_page: Optional[int] = Query(None, description="Specific page to search"),
+    start_page: Optional[int] = Query(None, description="Page range start"),
+    end_page: Optional[int] = Query(None, description="Page range end"),
     db: Session = Depends(get_db)
 ):
     start_time = time.time()
@@ -921,21 +1011,120 @@ def search_documents(
         # Generate query embedding - always fresh for accuracy
         query_emb = active_ai_utils.generate_embedding(q)
 
+        page_range_obj: Optional[dict] = None
+        if page_range == "specific" and specific_page is not None:
+            page_range_obj = {"start": specific_page, "end": specific_page}
+        elif page_range == "range":
+            page_range_obj = {"start": start_page, "end": end_page}
+
         # Search chunks with maximum retrieval for accuracy
         results = crud.search_chunks(
             db,
             query_emb,
             top_k=25,  # Increased from 15 for maximum context selection
             offset=offset,
-            doc_id=doc_id
+            doc_id=doc_id,
+            page_range=page_range_obj
         )
 
         if not results:
+            logger.info("No semantic matches found. Attempting fallback answer path.")
+
+            fallback_contexts: List[str] = []
+            fallback_sources: List[schemas.Source] = []
+
+            # 1) If a specific document is requested, use that document's chunks directly.
+            if doc_id is not None:
+                doc = db.query(models.Document).filter(models.Document.id == doc_id).first()
+                if doc:
+                    title = doc.title or f"Document {doc_id}"
+                    chunks = (
+                        db.query(models.Chunk)
+                        .filter(models.Chunk.doc_id == doc_id)
+                        .limit(12)
+                        .all()
+                    )
+                    fallback_contexts = [c.text for c in chunks if c.text]
+                    if fallback_contexts:
+                        fallback_sources = [schemas.Source(doc_id=doc_id, doc_title=title)]
+
+            # 2) If no specific doc or empty doc chunks, use recent chunks across documents.
+            if not fallback_contexts:
+                recent_chunks = (
+                    db.query(models.Chunk)
+                    .join(models.Document, models.Chunk.doc_id == models.Document.id)
+                    .order_by(models.Document.created_at.desc())
+                    .limit(20)
+                    .all()
+                )
+
+                seen_doc_ids = set()
+                for c in recent_chunks:
+                    if c.text:
+                        fallback_contexts.append(c.text)
+                    if c.doc_id is not None and c.doc_id not in seen_doc_ids and c.document:
+                        seen_doc_ids.add(c.doc_id)
+                        fallback_sources.append(
+                            schemas.Source(doc_id=c.doc_id, doc_title=c.document.title or f"Document {c.doc_id}")
+                        )
+                    if len(fallback_contexts) >= 12:
+                        break
+
+            # 3) Use dual-answer system with fallback contexts (or empty contexts for general Q&A).
+            if USE_DUAL_ANSWERS and groq_client:
+                dual_result = generate_dual_answers(
+                    groq_client,
+                    q,
+                    fallback_contexts,
+                    answer_length=answer_length,
+                    answer_mode=answer_mode,
+                )
+                answer = dual_result['answer']
+                dual_answer_info = schemas.DualAnswerInfo(
+                    local_answer=dual_result['local_answer'],
+                    groq_answer=dual_result['groq_answer'],
+                    selected_source=dual_result['source'],
+                    selection_reason=dual_result['selection_reason'],
+                    dual_answers_enabled=True
+                )
+
+                return schemas.AnswerOut(
+                    query=q,
+                    answer=answer,
+                    sources=fallback_sources,
+                    processing_time=time.time() - start_time,
+                    dual_answers=dual_answer_info,
+                    citations=[],
+                    answer_length=answer_length,
+                    answer_mode=answer_mode,
+                    page_range=schemas.PageRange(**page_range_obj) if page_range_obj else None,
+                    document_name=fallback_sources[0].doc_title if fallback_sources else None,
+                    generated_at=datetime.utcnow(),
+                )
+
+            # 4) Local-only fallback (if GROQ is unavailable).
+            local_fallback = "I couldn't find a direct match in your uploaded documents. Please try rephrasing the question, or ask a document-specific question using keywords from the file."
+            if doc_id is not None:
+                local_fallback += " You can also ask for a summary, key points, dates, or scores from this document."
+
             return schemas.AnswerOut(
                 query=q,
-                answer="I could not find relevant information for your query.",
-                sources=[],
-                processing_time=time.time() - start_time
+                answer=local_fallback,
+                sources=fallback_sources,
+                processing_time=time.time() - start_time,
+                dual_answers=schemas.DualAnswerInfo(
+                    local_answer=local_fallback,
+                    groq_answer="GROQ not available",
+                    selected_source="local",
+                    selection_reason="No semantic matches and GROQ unavailable",
+                    dual_answers_enabled=False
+                ),
+                citations=[],
+                answer_length=answer_length,
+                answer_mode=answer_mode,
+                page_range=schemas.PageRange(**page_range_obj) if page_range_obj else None,
+                document_name=fallback_sources[0].doc_title if fallback_sources else None,
+                generated_at=datetime.utcnow(),
             )
 
         # Re-rank results using your existing local models
@@ -944,11 +1133,18 @@ def search_documents(
         # Extract contexts for answer generation
         context_count = min(8, len(reranked))
         contexts = [r.get("text", "") for r in reranked[:context_count]]
+        selected_chunks = reranked[:context_count]
         
         # Generate dual answers: Local Models + GROQ
         dual_answer_info = None
         if USE_DUAL_ANSWERS and groq_client:
-            dual_result = generate_dual_answers(groq_client, q, contexts)
+            dual_result = generate_dual_answers(
+                groq_client,
+                q,
+                contexts,
+                answer_length=answer_length,
+                answer_mode=answer_mode,
+            )
             answer = dual_result['answer']
             
             # Create dual answer info for response
@@ -967,7 +1163,7 @@ def search_documents(
             # Convert contexts from list of dicts to list of strings for synthesize_answer
             context_strings = [r.get("text", "") for r in reranked[:context_count]]
             context_dicts = [{"text": ctx} for ctx in context_strings]
-            answer = (active_ai_utils.synthesize_answer(q, context_dicts) or "").strip()
+            answer = (active_ai_utils.synthesize_answer(q, context_dicts, answer_length=answer_length, answer_mode=answer_mode) or "").strip()
             
             # Create dual answer info indicating local-only mode
             dual_answer_info = schemas.DualAnswerInfo(
@@ -985,6 +1181,13 @@ def search_documents(
             answer = "I found relevant information but could not generate a clear answer. Please check the source documents."
 
         # Prepare sources with more details - use same context count as answer synthesis
+        citations: List[schemas.Citation] = []
+        try:
+            from .dual_answer_system import extract_citations_from_contexts
+            citations = extract_citations_from_contexts(q, answer, selected_chunks)
+        except Exception as e:
+            logger.warning(f"Citation extraction failed: {e}")
+
         sources = [
             schemas.Source(
                 doc_id=r.get("doc_id"),
@@ -994,6 +1197,8 @@ def search_documents(
             if r.get("doc_id") is not None
         ]
 
+        document_name = sources[0].doc_title if sources else (reranked[0].get("doc_title") if reranked else None)
+
         processing_time = time.time() - start_time
 
         return schemas.AnswerOut(
@@ -1001,7 +1206,13 @@ def search_documents(
             answer=answer,
             sources=sources,
             processing_time=processing_time,
-            dual_answers=dual_answer_info
+            dual_answers=dual_answer_info,
+            citations=citations,
+            answer_length=answer_length,
+            answer_mode=answer_mode,
+            page_range=schemas.PageRange(**page_range_obj) if page_range_obj else None,
+            document_name=document_name,
+            generated_at=datetime.utcnow(),
         )
 
     except HTTPException:
@@ -1009,6 +1220,66 @@ def search_documents(
     except Exception as e:
         logger.error(f"Search failed for query '{q}': {e}")
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+@app.post("/answer", response_model=schemas.AnswerOut)
+def answer_document(payload: schemas.AnswerRequestIn, db: Session = Depends(get_db)):
+    page_range_mode = "entire"
+    specific_page = None
+    start_page = None
+    end_page = None
+    if payload.page_range:
+        page_start = payload.page_range.start
+        page_end = payload.page_range.end
+        if page_start is not None and page_end is not None:
+            if page_start == page_end:
+                page_range_mode = "specific"
+                specific_page = page_start
+            else:
+                page_range_mode = "range"
+                start_page = page_start
+                end_page = page_end
+
+    return search_documents(
+        q=payload.question,
+        doc_id=payload.document_id,
+        answer_length=payload.answer_length,
+        answer_mode=payload.answer_mode,
+        page_range=page_range_mode,
+        specific_page=specific_page,
+        start_page=start_page,
+        end_page=end_page,
+        db=db,
+    )
+
+
+@app.post("/export/answer/{export_format}")
+def export_answer(export_format: str, payload: schemas.AnswerExportIn):
+    try:
+        export_payload = build_export_payload(
+            question=payload.question,
+            answer=payload.answer,
+            sources=payload.sources,
+            citations=payload.citations,
+            document_name=payload.document_name,
+            answer_length=payload.answer_length,
+            answer_mode=payload.answer_mode,
+            page_range=payload.page_range,
+            generated_at=payload.generated_at,
+        )
+        file_bytes, content_type = generate_export_bytes(export_format, export_payload)
+        extension = "pdf" if export_format.lower() == "pdf" else "docx"
+        filename = f"intellidoc-answer-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.{extension}"
+        return Response(
+            content=file_bytes,
+            media_type=content_type,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Export answer failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
 # Document management endpoints
 @app.get("/documents", response_model=List[schemas.DocumentSummary])
@@ -1094,6 +1365,414 @@ def cleanup_tasks(max_age_hours: int = Query(24, ge=1, le=168)):  # 1-168 hours 
     except Exception as e:
         logger.error(f"Failed to cleanup tasks: {e}")
         raise HTTPException(status_code=500, detail="Failed to cleanup tasks")
+
+
+# Admin Statistics Endpoints
+@app.get("/admin/statistics/overview")
+def admin_statistics_overview(request: Request, db: Session = Depends(get_db)):
+    """Get admin statistics overview"""
+    try:
+        email = request.headers.get('X-User-Email') or request.query_params.get('email')
+        if not email or email.lower() != 'rawatarjun98@gmail.com':
+            raise HTTPException(status_code=403, detail='Admin access required')
+
+        # Get statistics from database
+        user_count = db.query(models.User).count()
+        doc_count = db.query(models.Document).count()
+        demo_requests = db.query(models.DemoRequest).count()
+        onboarding_completed = db.query(models.OnboardingState).filter(models.OnboardingState.completed == 1).count()
+
+        return JSONResponse({
+            "users": user_count,
+            "documents": doc_count,
+            "demo_requests": demo_requests,
+            "onboarding_completed": onboarding_completed,
+            "recent_logins_24h": 0,
+            "documents_uploaded_7d": 0,
+            "system_errors_24h": 0,
+            "admin_actions_today": 0
+        }, status_code=200)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"admin_statistics_overview failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get admin statistics")
+
+
+@app.get("/admin/users")
+def admin_get_users(request: Request, db: Session = Depends(get_db)):
+    """Get all users (admin only)"""
+    try:
+        email = request.headers.get('X-User-Email') or request.query_params.get('email')
+        if not email or email.lower() != 'rawatarjun98@gmail.com':
+            raise HTTPException(status_code=403, detail='Admin access required')
+
+        users = db.query(models.User).all()
+        return JSONResponse({
+            "users": [{"id": u.id, "email": u.email, "name": u.name, "created_at": u.created_at.isoformat() if u.created_at else None} for u in users]
+        }, status_code=200)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"admin_get_users failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get users")
+
+
+# ==================== PHASE 1: CONVERSATION THREADING & CITATIONS ====================
+
+@app.post("/conversation/create")
+def create_conversation_thread(db: Session = Depends(get_db)):
+    """Create a new conversation thread"""
+    try:
+        import uuid
+        thread_id = str(uuid.uuid4())
+        
+        thread = models.ConversationThread(
+            thread_id=thread_id,
+            title="New Conversation",
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        db.add(thread)
+        db.commit()
+        db.refresh(thread)
+        
+        logger.info(f"Created conversation thread: {thread_id}")
+        return {"thread_id": thread_id, "id": thread.id}
+    except Exception as e:
+        logger.error(f"Failed to create conversation thread: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create thread: {str(e)}")
+
+
+@app.get("/conversation/{thread_id}", response_model=schemas.ConversationThreadOut)
+def get_conversation_thread(thread_id: str, db: Session = Depends(get_db)):
+    """Get a conversation thread with all messages"""
+    try:
+        thread = db.query(models.ConversationThread).filter(
+            models.ConversationThread.thread_id == thread_id
+        ).first()
+        
+        if not thread:
+            raise HTTPException(status_code=404, detail="Thread not found")
+        
+        return thread
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get conversation thread: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get thread: {str(e)}")
+
+
+@app.post("/conversation/{thread_id}/search")
+def search_with_thread(
+    thread_id: str,
+    q: str = Query(..., min_length=1, max_length=500),
+    limit: int = Query(10, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db)
+):
+    """Search with conversation thread context"""
+    try:
+        # Get the thread
+        thread = db.query(models.ConversationThread).filter(
+            models.ConversationThread.thread_id == thread_id
+        ).first()
+        
+        if not thread:
+            raise HTTPException(status_code=404, detail="Thread not found")
+        
+        # Perform search (reuse existing search logic)
+        start_time = time.time()
+        
+        # Get embeddings for query
+        try:
+            query_embedding = ai_utils.embed_text(q)
+        except Exception as e:
+            logger.warning(f"Embedding failed: {e}")
+            query_embedding = None
+        
+        # Search for relevant chunks
+        results = model_manager.search_chunks(q, query_embedding, limit=min(10, limit))
+        
+        # Build context from results
+        contexts = [r.get("text", "") for r in results if r.get("text")]
+        chunks = results
+        
+        # Include prior conversation context
+        prior_msgs = thread.messages[-3:] if thread.messages else []
+        prior_context = "\n".join([f"Q: {m.query}\nA: {m.answer}" for m in prior_msgs])
+        
+        if prior_context:
+            contexts.insert(0, f"Prior conversation context:\n{prior_context}")
+        
+        # Generate answer with dual system
+        dual_result = generate_dual_answers(groq_client, q, contexts)
+        
+        # Extract citations from chunks
+        from .dual_answer_system import extract_citations_from_contexts
+        citations = extract_citations_from_contexts(q, dual_result["answer"], chunks)
+        
+        # Get sources
+        sources = list({(r["doc_id"], r["doc_title"]): None for r in results}.keys())
+        sources_out = [{"doc_id": s[0], "doc_title": s[1]} for s in sources]
+        
+        # Save to thread
+        message = models.ConversationMessage(
+            thread_id=thread.id,
+            query=q,
+            answer=dual_result["answer"],
+            sources=json.dumps(sources_out),
+            citations=json.dumps([{
+                "quote": c.quote,
+                "chunk_id": c.chunk_id,
+                "doc_id": c.doc_id,
+                "doc_title": c.doc_title,
+                "confidence": c.confidence
+            } for c in citations]),
+            created_at=datetime.utcnow()
+        )
+        db.add(message)
+        
+        # Update thread title from first message
+        if not thread.messages or len(thread.messages) == 0:
+            thread.title = q[:80]
+        
+        thread.updated_at = datetime.utcnow()
+        db.commit()
+        
+        processing_time = time.time() - start_time
+        
+        return {
+            "query": q,
+            "answer": dual_result["answer"],
+            "sources": sources_out,
+            "citations": [{"quote": c.quote, "chunk_id": c.chunk_id, "doc_id": c.doc_id, "doc_title": c.doc_title, "confidence": c.confidence} for c in citations],
+            "processing_time": processing_time,
+            "dual_answers": {
+                "local_answer": dual_result["local_answer"],
+                "groq_answer": dual_result["groq_answer"],
+                "selected_source": dual_result["source"],
+                "selection_reason": dual_result["selection_reason"],
+                "dual_answers_enabled": groq_client is not None
+            },
+            "thread_id": thread_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Thread search failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+@app.get("/conversation")
+def list_conversation_threads(db: Session = Depends(get_db)):
+    """List all conversation threads"""
+    try:
+        threads = db.query(models.ConversationThread).order_by(
+            models.ConversationThread.updated_at.desc()
+        ).limit(20).all()
+        
+        return [{
+            "id": t.id,
+            "thread_id": t.thread_id,
+            "title": t.title,
+            "message_count": len(t.messages),
+            "created_at": t.created_at,
+            "updated_at": t.updated_at
+        } for t in threads]
+    except Exception as e:
+        logger.error(f"Failed to list threads: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list threads: {str(e)}")
+
+
+# ==================== PHASE 2: ENTITY EXTRACTION ====================
+
+@app.post("/extract")
+def extract_entities(doc_id: int, db: Session = Depends(get_db)):
+    """Extract named entities from a document"""
+    try:
+        from .extraction_service import extract_entities_from_text
+        
+        # Get document and its chunks
+        doc = db.query(models.Document).filter(models.Document.id == doc_id).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        all_entities = []
+        
+        # Extract from all chunks
+        for chunk in doc.chunks[:20]:  # Limit to first 20 chunks for performance
+            entities = extract_entities_from_text(chunk.text, chunk.id)
+            all_entities.extend(entities)
+        
+        # Group by type
+        entities_by_type = {}
+        for entity in all_entities:
+            etype = entity.type
+            if etype not in entities_by_type:
+                entities_by_type[etype] = []
+            entities_by_type[etype].append(entity)
+        
+        logger.info(f"Extracted {len(all_entities)} entities from doc {doc_id}")
+        
+        return {
+            "doc_id": doc_id,
+            "doc_title": doc.title,
+            "entities": all_entities,
+            "entities_by_type": entities_by_type,
+            "total_entities": len(all_entities)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Entity extraction failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+
+
+@app.post("/extract/batch")
+def extract_from_multiple_docs(doc_ids: List[int], db: Session = Depends(get_db)):
+    """Extract entities from multiple documents"""
+    try:
+        from .extraction_service import extract_entities_from_text
+        
+        results = []
+        
+        for doc_id in doc_ids[:10]:  # Limit to 10 docs
+            doc = db.query(models.Document).filter(models.Document.id == doc_id).first()
+            if not doc:
+                continue
+            
+            all_entities = []
+            for chunk in doc.chunks[:10]:
+                entities = extract_entities_from_text(chunk.text, chunk.id)
+                all_entities.extend(entities)
+            
+            results.append({
+                "doc_id": doc_id,
+                "doc_title": doc.title,
+                "entity_count": len(all_entities),
+                "entities": all_entities[:20]  # Limit output
+            })
+        
+        return {"results": results, "total_docs_processed": len(results)}
+    except Exception as e:
+        logger.error(f"Batch extraction failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Batch extraction failed: {str(e)}")
+
+
+# ==================== PHASE 3: DOCUMENT COMPARISON ====================
+
+@app.post("/compare")
+def compare_documents(doc_ids: List[int], db: Session = Depends(get_db)):
+    """Compare multiple documents"""
+    try:
+        from .comparison_service import compare_documents
+        
+        if len(doc_ids) < 2:
+            raise HTTPException(status_code=400, detail="Need at least 2 documents to compare")
+        
+        # Get documents with chunks
+        documents = []
+        for doc_id in doc_ids[:5]:  # Limit to  5 docs
+            doc = db.query(models.Document).filter(models.Document.id == doc_id).first()
+            if doc:
+                documents.append({
+                    "id": doc.id,
+                    "title": doc.title,
+                    "chunks": [{"id": c.id, "text": c.text, "embedding": c.embedding} for c in doc.chunks[:15]]
+                })
+        
+        if len(documents) < 2:
+            raise HTTPException(status_code=400, detail="Could not find enough documents")
+        
+        # Perform comparison
+        comparison = compare_documents(documents, ai_utils)  # Pass model manager for embeddings
+        
+        logger.info(f"Compared {len(documents)} documents")
+        return comparison
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Document comparison failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Comparison failed: {str(e)}")
+
+
+# ==================== PHASE 4: TRANSLATION & MULTILINGUAL ====================
+
+@app.post("/translate")
+def translate_text(text: str, target_language: str):
+    """Translate text to target language"""
+    try:
+        from .translation_service import translate_text, LANGUAGE_MAP
+        
+        if len(text) > 5000:
+            raise HTTPException(status_code=400, detail="Text too long (max 5000 chars)")
+        
+        result = translate_text(text, target_language)
+        
+        logger.info(f"Translated text to {target_language}")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Translation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
+
+
+@app.post("/detect-language")
+def detect_language(text: str):
+    """Detect language of text"""
+    try:
+        from .translation_service import detect_language
+        
+        if len(text) > 5000:
+            raise HTTPException(status_code=400, detail="Text too long (max 5000 chars)")
+        
+        result = detect_language(text)
+        
+        logger.info(f"Detected language: {result.detected_language}")
+        return result
+    except Exception as e:
+        logger.error(f"Language detection failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
+
+
+@app.post("/multilingual-summary")
+def create_multilingual_summary(doc_id: int, target_languages: List[str] = ["es", "fr", "de"], db: Session = Depends(get_db)):
+    """Create document summary in multiple languages"""
+    try:
+        from .translation_service import create_multilingual_summary
+        
+        doc = db.query(models.Document).filter(models.Document.id == doc_id).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Use existing summary or generate one
+        summary = doc.summary or "Document summary not available"
+        
+        result = create_multilingual_summary(doc_id, doc.title, summary, target_languages)
+        
+        logger.info(f"Created multilingual summary for doc {doc_id}")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Multilingual summary creation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Summary creation failed: {str(e)}")
+
+
+@app.get("/languages")
+def get_supported_languages():
+    """Get list of supported languages"""
+    try:
+        from .translation_service import get_available_languages
+        
+        languages = get_available_languages()
+        return {"languages": languages}
+    except Exception as e:
+        logger.error(f"Failed to get languages: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get languages")
+
 
 # Serve built React SPA — catch-all must be LAST
 @app.get("/{full_path:path}", include_in_schema=False)

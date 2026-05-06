@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
 
 // Google Identity Services (GSI) button for frontend-only sign-in (no backend required).
 // To use, register your app in Google Cloud Console and get a client ID.
@@ -6,7 +6,12 @@ import React, { useEffect } from 'react';
 
 type Props = {
   clientId: string;
-  onSuccess?: (user: { email?: string; name?: string; picture?: string; token?: string }) => void;
+  onSuccess?: (user: {
+    email?: string;
+    name?: string;
+    picture?: string;
+    token?: string;
+  }) => void;
   onError?: (err: any) => void;
 };
 
@@ -29,12 +34,19 @@ const GoogleSignIn: React.FC<Props> = ({ clientId, onSuccess, onError }) => {
             try {
               const token = response?.credential;
               if (!token) {
-                if (onError) onError(new Error('No credential returned'));
+                if (onError) onError(new Error("No credential returned"));
                 return;
               }
-              const parts = token.split('.');
-              const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-              const user = { email: payload.email, name: payload.name || payload.given_name, picture: payload.picture, token };
+              const parts = token.split(".");
+              const payload = JSON.parse(
+                atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")),
+              );
+              const user = {
+                email: payload.email,
+                name: payload.name || payload.given_name,
+                picture: payload.picture,
+                token,
+              };
               if (onSuccess) onSuccess(user);
             } catch (e) {
               if (onError) onError(e);
@@ -42,9 +54,12 @@ const GoogleSignIn: React.FC<Props> = ({ clientId, onSuccess, onError }) => {
           },
         });
 
-        const container = document.getElementById('google-signin-button');
+        const container = document.getElementById("google-signin-button");
         if (container) {
-          win.google.accounts.id.renderButton(container, { theme: 'outline', size: 'large' });
+          win.google.accounts.id.renderButton(container, {
+            theme: "outline",
+            size: "large",
+          });
         }
       } catch (e) {
         if (onError) onError(e);
@@ -52,16 +67,22 @@ const GoogleSignIn: React.FC<Props> = ({ clientId, onSuccess, onError }) => {
     };
 
     // If script already present, attach immediately
-    if ((window as any).google && (window as any).google.accounts && (window as any).google.accounts.id) {
+    if (
+      (window as any).google &&
+      (window as any).google.accounts &&
+      (window as any).google.accounts.id
+    ) {
       attach();
     } else {
       // otherwise create script and attach on load
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
       script.onload = () => attach();
-  script.onerror = () => { if (onError) onError(new Error('Failed to load GSI script')); };
+      script.onerror = () => {
+        if (onError) onError(new Error("Failed to load GSI script"));
+      };
       document.head.appendChild(script);
     }
 

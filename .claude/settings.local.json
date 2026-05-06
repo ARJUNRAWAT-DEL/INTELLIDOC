@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export:*)",
+      "Bash(pip install:*)",
+      "Bash(npx tsc *)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

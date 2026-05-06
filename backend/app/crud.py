@@ -3,6 +3,7 @@ from sqlalchemy import func, desc
 from . import models
 from .logger import logger
 import numpy as np
+import re
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -16,8 +17,8 @@ from .logger import logger
 # ------------------ Create document ------------------
 def create_document(db: Session, title: str, content: str, summary: str, chunks: list):
     """
-    Creates a document and its associated chunks with embeddings.
-    `chunks` should be a list of dicts: { "text": str, "embedding": list[float] }
+    Creates a document and its associated chunks with embeddings using OPTIMIZED batch inserts.
+    `chunks` should be a list of dicts: { "text": str, "embedding": list[float], "page_number": int, "paragraph_number": int }
     """
     try:
         db_doc = models.Document(
@@ -29,17 +30,34 @@ def create_document(db: Session, title: str, content: str, summary: str, chunks:
         db.commit()
         db.refresh(db_doc)
 
-        # Add chunks with embeddings
+        # OPTIMIZED: Batch insert chunks for MUCH faster inserts
+        batch_size = 500  # From config
+        chunk_objects = []
+        
         for chunk in chunks:
+            # Note: Chunk model stores only text and embedding fields. Any page/paragraph
+            # metadata is embedded into the chunk text (e.g., [[PAGE:1|PARA:2]] ...)
             db_chunk = models.Chunk(
                 doc_id=db_doc.id,
                 text=chunk["text"],
                 embedding=chunk["embedding"]  # already normalized in ai_utils
             )
-            db.add(db_chunk)
+            chunk_objects.append(db_chunk)
+            
+            # Batch commit every N chunks for optimal performance
+            if len(chunk_objects) >= batch_size:
+                db.add_all(chunk_objects)
+                db.commit()
+                logger.info(f"✓ Batch inserted {len(chunk_objects)} chunks to database")
+                chunk_objects = []
+        
+        # Insert remaining chunks
+        if chunk_objects:
+            db.add_all(chunk_objects)
+            db.commit()
+            logger.info(f"✓ Final batch inserted {len(chunk_objects)} chunks to database")
 
-        db.commit()
-        logger.info(f"Created document {db_doc.id} with {len(chunks)} chunks")
+        logger.info(f"✓ Document {db_doc.id} created with {len(chunks)} chunks total")
         return db_doc
 
     except Exception as e:
@@ -141,13 +159,29 @@ def cosine_similarity(a, b):
         return 0.0
     return float(np.dot(a, b) / denom)
 
+
+def _parse_chunk_metadata(text: str) -> Dict[str, Any]:
+    match = re.match(r"^\[\[PAGE:(\d+)\|PARA:(\d+)\]\]\s*(.*)$", text or "", re.DOTALL)
+    if not match:
+        return {
+            "text": text,
+            "page_number": None,
+            "paragraph_number": None,
+        }
+    return {
+        "text": match.group(3).strip(),
+        "page_number": int(match.group(1)),
+        "paragraph_number": int(match.group(2)),
+    }
+
 # ------------------ Search chunks ------------------
 def search_chunks(
     db: Session,
     query_embedding: list,
     top_k: int = 5,
     offset: int = 0,
-    doc_id: Optional[int] = None
+    doc_id: Optional[int] = None,
+    page_range: Optional[Dict[str, Optional[int]]] = None
 ) -> List[Dict[str, Any]]:
     """
     Optimized search with early termination and batch processing.
@@ -176,11 +210,26 @@ def search_chunks(
         except Exception as e:
             logger.warning(f"Failed to compute similarity for chunk {c.id}: {e}")
             score = 0.0
+
+        metadata = _parse_chunk_metadata(c.text or "")
+        page_number = metadata.get("page_number")
+        paragraph_number = metadata.get("paragraph_number")
+
+        if page_range:
+            start_page = page_range.get("start")
+            end_page = page_range.get("end")
+            if page_number is not None:
+                if start_page is not None and page_number < start_page:
+                    continue
+                if end_page is not None and page_number > end_page:
+                    continue
         
         results.append({
-            "text": c.text,
+            "text": metadata.get("text", c.text),
             "doc_id": c.doc_id,
             "doc_title": c.document.title if c.document else None,
+            "page_number": page_number,
+            "paragraph_number": paragraph_number,
             "score": score
         })
 
@@ -197,12 +246,17 @@ def count_chunks(db: Session) -> int:
 
 # ------------------ User / Auth helpers ------------------
 def get_user_by_email(db: Session, email: str):
-    return db.query(models.User).filter(models.User.email == email).first()
+    """Get user by email (case-insensitive)"""
+    if not email:
+        return None
+    email_lower = email.lower().strip()
+    return db.query(models.User).filter(models.User.email == email_lower).first()
 
 
 def create_user(db: Session, email: str, password_hash: str, password_salt: str, name: Optional[str] = None):
     try:
-        u = models.User(email=email, password_hash=password_hash, password_salt=password_salt, name=name)
+        email_lower = email.lower().strip()
+        u = models.User(email=email_lower, password_hash=password_hash, password_salt=password_salt, name=name)
         db.add(u)
         db.commit()
         db.refresh(u)
@@ -215,7 +269,8 @@ def create_user(db: Session, email: str, password_hash: str, password_salt: str,
 
 def update_user_password(db: Session, email: str, new_password_hash: str, new_salt: str):
     try:
-        u = get_user_by_email(db, email)
+        email_lower = email.lower().strip()
+        u = get_user_by_email(db, email_lower)
         if not u:
             return False
         u.password_hash = new_password_hash

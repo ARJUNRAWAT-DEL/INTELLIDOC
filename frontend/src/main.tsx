@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App";
 import Home from "./pages/Home.tsx";
@@ -23,6 +23,7 @@ import ProjectsPersonal from "./pages/ProjectsPersonal";
 import ContactPersonal from "./pages/ContactPersonal";
 import HowItWorks from "./pages/HowItWorks";
 import OauthCallback from "./pages/OauthCallback";
+import AdminPortal from "./pages/AdminPortal";
 import Navbar from "./components/navbar";
 import Footer from "./components/Footer";
 import PageShell from "./components/PageShell";
@@ -31,13 +32,23 @@ import "./index.css";
 import { useEffect, useState } from "react";
 import OnboardingModal from "./components/OnboardingModal";
 
+declare global {
+  interface Window {
+    __intellidocRoot?: Root;
+  }
+}
+
 function RootApp() {
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
 
   useEffect(() => {
     const handler = () => setShowOnboardingModal(true);
-    window.addEventListener('openOnboardingModal', handler as EventListener);
-    return () => window.removeEventListener('openOnboardingModal', handler as EventListener);
+    window.addEventListener("openOnboardingModal", handler as EventListener);
+    return () =>
+      window.removeEventListener(
+        "openOnboardingModal",
+        handler as EventListener,
+      );
   }, []);
 
   return (
@@ -46,40 +57,52 @@ function RootApp() {
       <Navbar />
       <PageShell>
         <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/app" element={<App />} />
-        <Route path="/how-it-works" element={<HowItWorks />} />
-        <Route path="/pricing" element={<Pricing />} />
-  <Route path="/oauth-callback" element={<OauthCallback />} />
-        <Route path="/solutions" element={<Solutions />} />
-        <Route path="/integrations" element={<Integrations />} />
-        <Route path="/resources" element={<Resources />} />
-        <Route path="/docs" element={<Docs />} />
-  <Route path="/book-demo" element={<BookDemo />} />
-  <Route path="/summarize" element={<Summarize />} />
-  <Route path="/personal" element={<PersonalHome />} />
-  <Route path="/personal/about" element={<AboutPersonal />} />
-  <Route path="/personal/projects" element={<ProjectsPersonal />} />
-  <Route path="/personal/contact" element={<ContactPersonal />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/forgot" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/support" element={<Support />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/app" element={<App />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/oauth-callback" element={<OauthCallback />} />
+          <Route path="/solutions" element={<Solutions />} />
+          <Route path="/integrations" element={<Integrations />} />
+          <Route path="/resources" element={<Resources />} />
+          <Route path="/docs" element={<Docs />} />
+          <Route path="/book-demo" element={<BookDemo />} />
+          <Route path="/summarize" element={<Summarize />} />
+          <Route path="/personal" element={<PersonalHome />} />
+          <Route path="/personal/about" element={<AboutPersonal />} />
+          <Route path="/personal/projects" element={<ProjectsPersonal />} />
+          <Route path="/personal/contact" element={<ContactPersonal />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/forgot" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/admin" element={<AdminPortal />} />
         </Routes>
       </PageShell>
       <Footer />
-      {showOnboardingModal && <OnboardingModal isOpen={showOnboardingModal} onClose={() => setShowOnboardingModal(false)} />}
+      {showOnboardingModal && (
+        <OnboardingModal
+          isOpen={showOnboardingModal}
+          onClose={() => setShowOnboardingModal(false)}
+        />
+      )}
     </>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+const rootContainer = document.getElementById("root")!;
+const root = window.__intellidocRoot ?? createRoot(rootContainer);
+window.__intellidocRoot = root;
+
+root.render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
       <RootApp />
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

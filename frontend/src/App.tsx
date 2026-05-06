@@ -8,7 +8,7 @@ import UploadProgress from "./components/UploadProgress";
 import { ApiService } from "./services/api";
 import Login from "./pages/Login";
 import HowItWorks from "./pages/HowItWorks";
-import OnboardingModal from './components/OnboardingModal';
+import OnboardingModal from "./components/OnboardingModal";
 
 // Local type definitions to avoid import issues
 interface Source {
@@ -32,6 +32,15 @@ interface SearchResponse {
   dual_answers?: DualAnswerInfo;
 }
 
+interface ConversationItem {
+  id: string;
+  query: string;
+  answer: string;
+  createdAt: string;
+  sources: Source[];
+  selectedSource?: string;
+}
+
 interface DocumentSummary {
   id: number;
   title: string;
@@ -52,25 +61,68 @@ interface Metrics {
 
 function App() {
   const navigate = useNavigate();
-  const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(null);
+  const HISTORY_KEY = "intellidoc_conversation_history";
+  const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(
+    null,
+  );
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [conversationHistory, setConversationHistory] = useState<
+    ConversationItem[]
+  >([]);
   const [uploadTaskId, setUploadTaskId] = useState<string | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<DocumentSummary | null>(null);
+  const [selectedDocument, setSelectedDocument] =
+    useState<DocumentSummary | null>(null);
   const [refreshDocuments, setRefreshDocuments] = useState(0);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [activeTab, setActiveTab] = useState<"upload" | "library" | "metrics">("upload");
+  const [activeTab, setActiveTab] = useState<"upload" | "library" | "metrics">(
+    "upload",
+  );
   const [showLogin, setShowLogin] = useState(false);
-  const [user, setUser] = useState<{ name?: string; email?: string } | null>(null);
+  const [user, setUser] = useState<{ name?: string; email?: string } | null>(
+    null,
+  );
   const [isDevMock, setIsDevMock] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
-  // listen for global event to open the onboarding modal
+  // listen for global events (onboarding, open login, and user logged in)
   useEffect(() => {
-    const handler = () => setShowOnboardingModal(true);
-    window.addEventListener('openOnboardingModal', handler as EventListener);
-    return () => window.removeEventListener('openOnboardingModal', handler as EventListener);
+    const onboardingHandler = () => setShowOnboardingModal(true);
+    const openLoginHandler = () => setShowLogin(true);
+    const userLoggedInHandler = () => {
+      loadUser();
+      setShowLogin(false);
+    };
+
+    window.addEventListener(
+      "openOnboardingModal",
+      onboardingHandler as EventListener,
+    );
+    window.addEventListener("openLogin", openLoginHandler as EventListener);
+    window.addEventListener(
+      "userLoggedIn",
+      userLoggedInHandler as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "openOnboardingModal",
+        onboardingHandler as EventListener,
+      );
+      window.removeEventListener(
+        "openLogin",
+        openLoginHandler as EventListener,
+      );
+      window.removeEventListener(
+        "userLoggedIn",
+        userLoggedInHandler as EventListener,
+      );
+    };
   }, []);
 
   // Load metrics on startup
@@ -78,14 +130,40 @@ function App() {
     loadMetrics();
     loadUser();
     detectDevMock();
+
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setConversationHistory(parsed.slice(0, 20));
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load conversation history", e);
+    }
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify(conversationHistory.slice(0, 20)),
+      );
+    } catch (e) {
+      console.warn("Failed to persist conversation history", e);
+    }
+  }, [conversationHistory]);
 
   const detectDevMock = () => {
     try {
-      if (typeof window === 'undefined') return;
-      const devUsers = localStorage.getItem('dev_users');
+      if (typeof window === "undefined") return;
+      const devUsers = localStorage.getItem("dev_users");
       const token = ApiService.getToken();
-      if (devUsers || (token && token.startsWith && token.startsWith('dev-token-'))) {
+      if (
+        devUsers ||
+        (token && token.startsWith && token.startsWith("dev-token-"))
+      ) {
         setIsDevMock(true);
         return;
       }
@@ -97,7 +175,7 @@ function App() {
 
   const loadUser = () => {
     try {
-      const raw = localStorage.getItem('intellidoc_user');
+      const raw = localStorage.getItem("intellidoc_user");
       if (raw) {
         setUser(JSON.parse(raw));
         return;
@@ -118,14 +196,44 @@ function App() {
   };
 
   // ---------------- Search ----------------
-  const handleSearch = async (query: string) => {
+  interface SearchOptions {
+    query: string;
+    answerLength: "short" | "balanced" | "detailed";
+    answerMode:
+      | "summary"
+      | "qa"
+      | "keypoints"
+      | "pageexplanation"
+      | "actionitems";
+    pageRange: "entire" | "specific" | "range";
+    specificPage?: number;
+    startPage?: number;
+    endPage?: number;
+  }
+
+  const handleSearch = async (options: SearchOptions) => {
     setSearchLoading(true);
     setSearchError(null);
     setSearchResponse(null);
 
     try {
-      const response = await ApiService.search(query, 10, 0, selectedDocument?.id);
+      // Enhanced API call with search options
+      const response = await ApiService.searchEnhanced(
+        options,
+        selectedDocument?.id,
+      );
       setSearchResponse(response);
+
+      const newItem: ConversationItem = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        query: options.query,
+        answer: response.answer,
+        createdAt: new Date().toISOString(),
+        sources: response.sources || [],
+        selectedSource: response.dual_answers?.selected_source,
+      };
+
+      setConversationHistory((prev) => [newItem, ...prev].slice(0, 20));
     } catch (err: any) {
       setSearchError(err.message || String(err));
     } finally {
@@ -138,26 +246,67 @@ function App() {
     setUploadTaskId(taskId);
   };
 
+  const showNotification = (message: string, type: "success" | "error") => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
   const handleUploadComplete = (result: any) => {
     setUploadTaskId(null);
-    setRefreshDocuments(prev => prev + 1);
+    setRefreshDocuments((prev) => prev + 1);
     loadMetrics();
-    alert(`Document "${result.title}" uploaded successfully!`);
+    const name = result?.title || "Document";
+    showNotification(`"${name}" uploaded successfully!`, "success");
   };
 
   const handleUploadError = (error: string) => {
     setUploadTaskId(null);
-    alert("Upload failed: " + error);
+    showNotification("Upload failed: " + error, "error");
   };
   return (
-    <div className="min-h-screen relative bg-transparent">
+    <div className="min-h-screen relative solar-bg">
+      {/* Solar System Background Elements */}
+      <div className="fixed inset-0 z-0 overflow-hidden">
+        <div className="planet sun"></div>
+        <div className="planet earth"></div>
+        <div className="planet purple"></div>
+        <div className="planet gold"></div>
+      </div>
+
+      {/* Toast Notification */}
+      {notification && (
+        <div
+          className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl text-white text-sm font-semibold transition-all duration-300 max-w-sm ${
+            notification.type === "success"
+              ? "bg-emerald-600"
+              : "bg-red-500"
+          }`}
+        >
+          <span className="text-lg">
+            {notification.type === "success" ? "✅" : "❌"}
+          </span>
+          <span className="flex-1">{notification.message}</span>
+          <button
+            onClick={() => setNotification(null)}
+            className="ml-2 opacity-70 hover:opacity-100 transition-opacity"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Page Content */}
       <div className="relative z-20">
         {showLogin && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="max-w-md w-full mx-4">
-              <Login onSuccess={() => { setShowLogin(false); loadUser(); }} onCancel={() => setShowLogin(false)} />
+              <Login
+                onSuccess={() => {
+                  setShowLogin(false);
+                  loadUser();
+                }}
+                onCancel={() => setShowLogin(false)}
+              />
             </div>
           </div>
         )}
@@ -166,28 +315,68 @@ function App() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="bg-[var(--nav-green)] text-white rounded-full px-4 py-3 flex items-center justify-between shadow-lg">
               <div className="flex items-center gap-6">
-                <div className="text-2xl font-extrabold tracking-tight ml-2">IntelliDoc</div>
+                <div className="text-2xl font-extrabold tracking-tight ml-2">
+                  IntelliDoc
+                </div>
                 <nav className="hidden md:flex items-center gap-6 text-sm opacity-90">
-                  <a className="hover:opacity-100" href="#">Solution</a>
-                  <a className="hover:opacity-100" href="#">Resources</a>
+                  <a className="hover:opacity-100" href="#">
+                    Solution
+                  </a>
+                  <a className="hover:opacity-100" href="#">
+                    Resources
+                  </a>
                 </nav>
               </div>
               <div className="flex items-center gap-3">
                 {isDevMock && (
                   <div className="hidden md:flex items-center mr-4">
-                    <span title="Using local dev auth mocks" className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm font-semibold border border-yellow-200">DEV MOCK</span>
+                    <span
+                      title="Using local dev auth mocks"
+                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm font-semibold border border-yellow-200"
+                    >
+                      DEV MOCK
+                    </span>
                   </div>
                 )}
-                <button className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-sm">Get a quote</button>
+                <button className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-sm">
+                  Get a quote
+                </button>
                 {user ? (
                   <div className="hidden md:flex items-center gap-3">
-                    <span className="text-sm font-semibold">Hi, {user.name || user.email}</span>
-                    <button onClick={() => { ApiService.logout(); sessionStorage.removeItem('intellidoc_token'); localStorage.removeItem('intellidoc_user'); setUser(null); }} className="px-3 py-2 rounded-full border border-white/20 text-sm">Log out</button>
+                    <span className="text-sm font-semibold">
+                      Hi, {user.name || user.email}
+                    </span>
+                    {user.email === "rawatarjun98@gmail.com" && (
+                      <button
+                        onClick={() => navigate("/admin")}
+                        className="px-3 py-2 rounded-full bg-[var(--cta-pink)]/80 text-white text-sm font-semibold hover:bg-[var(--cta-pink)]"
+                      >
+                        Admin Portal
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        ApiService.logout();
+                        sessionStorage.removeItem("intellidoc_token");
+                        localStorage.removeItem("intellidoc_user");
+                        setUser(null);
+                      }}
+                      className="px-3 py-2 rounded-full border border-white/20 text-sm"
+                    >
+                      Log out
+                    </button>
                   </div>
                 ) : (
-                  <button onClick={() => setShowLogin(true)} className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-sm">Log in</button>
+                  <button
+                    onClick={() => setShowLogin(true)}
+                    className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-sm"
+                  >
+                    Log in
+                  </button>
                 )}
-                <button className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--cta-pink)] text-white text-sm shadow">Book a demo</button>
+                <button className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--cta-pink)] text-white text-sm shadow">
+                  Book a demo
+                </button>
               </div>
             </div>
           </div>
@@ -203,24 +392,50 @@ function App() {
               <section className="bg-transparent">
                 <div className="px-6 py-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                   <div className="space-y-6">
-                    <h1 className="text-6xl md:text-7xl font-extrabold text-[var(--nav-green)] leading-tight">IntelliDoc
-                      <br/>Document Intelligence</h1>
-                    <p className="text-2xl text-[var(--nav-green)] font-semibold">Search. Summarize. Discover.</p>
-                    <p className="text-lg text-[rgba(0,0,0,0.55)] max-w-2xl mt-4">IntelliDoc turns your PDFs, Word documents and text files into a searchable knowledge base. Upload documents, index content, and ask natural-language questions — get accurate, sourced answers instantly.</p>
+                    <h1 className="text-6xl md:text-7xl font-extrabold text-[var(--nav-green)] leading-tight">
+                      IntelliDoc
+                      <br />
+                      Document Intelligence
+                    </h1>
+                    <p className="text-2xl text-[var(--nav-green)] font-semibold">
+                      Search. Summarize. Discover.
+                    </p>
+                    <p className="text-lg text-[rgba(0,0,0,0.55)] max-w-2xl mt-4">
+                      IntelliDoc turns your PDFs, Word documents and text files
+                      into a searchable knowledge base. Upload documents, index
+                      content, and ask natural-language questions — get
+                      accurate, sourced answers instantly.
+                    </p>
                     <div className="mt-8 flex items-center gap-4">
-                      <button onClick={() => navigate('/onboarding')} className="px-6 py-3 rounded-full bg-[var(--nav-green)] text-white font-semibold shadow">Try IntelliDoc</button>
-                      <button onClick={() => setShowHowItWorks(true)} className="text-sm text-[rgba(0,0,0,0.6)]">How it works →</button>
+                      <button
+                        onClick={() => navigate("/onboarding")}
+                        className="px-6 py-3 rounded-full bg-[var(--nav-green)] text-white font-semibold shadow"
+                      >
+                        Try IntelliDoc
+                      </button>
+                      <button
+                        onClick={() => navigate("/how-it-works")}
+                        className="text-sm text-[rgba(0,0,0,0.6)]"
+                      >
+                        View Demo →
+                      </button>
                     </div>
                   </div>
                   <div className="flex justify-center lg:justify-end">
                     {/* Phone mockup */}
                     <div className="w-80 h-[480px] rounded-3xl bg-white shadow-2xl border border-gray-100 flex flex-col overflow-hidden">
-                      <div className="h-12 bg-[var(--demo-pink-1)] flex items-center px-4 text-sm text-[var(--nav-green)] font-semibold">IntelliDoc</div>
+                      <div className="h-12 bg-[var(--demo-pink-1)] flex items-center px-4 text-sm text-[var(--nav-green)] font-semibold">
+                        IntelliDoc
+                      </div>
                       <div className="flex-1 p-6 bg-white">
                         <div className="h-full rounded-2xl bg-[linear-gradient(180deg,#fff,#fff)] p-4">
-                          <div className="text-sm text-gray-600 mb-4">We've got some questions for you. Are you ready?</div>
+                          <div className="text-sm text-gray-600 mb-4">
+                            We've got some questions for you. Are you ready?
+                          </div>
                           <div className="flex justify-end">
-                            <div className="bg-[var(--cta-pink)] text-white px-4 py-2 rounded-full">Yes!</div>
+                            <div className="bg-[var(--cta-pink)] text-white px-4 py-2 rounded-full">
+                              Yes!
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -236,28 +451,99 @@ function App() {
                   <div className="space-y-8">
                     <div className="bg-white rounded-3xl border border-gray-200 shadow-3xl overflow-hidden">
                       <div className="flex bg-gradient-to-r from-gray-50/60 to-white/40 p-2">
-                        {[{ key: 'upload', label: 'Upload', icon: '🚀' }, { key: 'library', label: 'Library', icon: '📚' }, { key: 'metrics', label: 'Analytics', icon: '📊' }].map(tab => (
-                          <button key={tab.key} onClick={() => setActiveTab(tab.key as any)} className={`flex-1 px-6 py-4 rounded-2xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-3 ${activeTab === tab.key ? 'bg-white text-gray-900 shadow-xl transform scale-105' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'}`}>
-                            <span className="text-lg">{tab.icon}</span>{tab.label}
+                        {[
+                          { key: "upload", label: "Upload", icon: "🚀" },
+                          { key: "library", label: "Library", icon: "📚" },
+                          { key: "metrics", label: "Analytics", icon: "📊" },
+                        ].map((tab) => (
+                          <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key as any)}
+                            className={`flex-1 px-6 py-4 rounded-2xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-3 ${activeTab === tab.key ? "bg-white text-gray-900 shadow-xl transform scale-105" : "text-gray-600 hover:text-gray-900 hover:bg-white/50"}`}
+                          >
+                            <span className="text-lg">{tab.icon}</span>
+                            {tab.label}
                           </button>
                         ))}
                       </div>
                       <div className="p-8">
-                        {activeTab === 'upload' && <StunningUpload onUploadStart={handleUploadStart} onUploadComplete={handleUploadComplete} onUploadError={handleUploadError} uploadTaskId={uploadTaskId} />}
-                        {activeTab === 'library' && <DocumentLibrary onDocumentSelect={setSelectedDocument} refreshTrigger={refreshDocuments} />}
-                        {activeTab === 'metrics' && metrics && <div className="space-y-6">{/* metrics summary */}
-                          <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">System Analytics</h3>
-                          <div className="grid grid-cols-2 gap-6">{[{ label: 'Documents', value: metrics.documents_count, icon: '📄', color: 'from-blue-500 to-cyan-400' }, { label: 'Text Chunks', value: metrics.chunks_count, icon: '🧩', color: 'from-purple-500 to-pink-400' }, { label: 'Avg/Doc', value: metrics.avg_chunks_per_doc.toFixed(1), icon: '📊', color: 'from-emerald-500 to-green-400' }, { label: 'Storage', value: `${Math.round(metrics.total_file_size / 1024 / 1024)} MB`, icon: '💾', color: 'from-amber-500 to-orange-400' }].map((metric, index) => (
-                            <div key={index} className="bg-white/70 rounded-2xl p-6 border border-white/40 shadow-lg">
-                              <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${metric.color} mb-4 shadow-lg`}><span className="text-xl">{metric.icon}</span></div>
-                              <div className="text-3xl font-black text-gray-900 mb-1">{metric.value}</div>
-                              <div className="text-sm text-gray-600 font-semibold">{metric.label}</div>
+                        {activeTab === "upload" && (
+                          <StunningUpload
+                            onUploadStart={handleUploadStart}
+                            onUploadComplete={handleUploadComplete}
+                            onUploadError={handleUploadError}
+                            uploadTaskId={uploadTaskId}
+                          />
+                        )}
+                        {activeTab === "library" && (
+                          <DocumentLibrary
+                            onDocumentSelect={setSelectedDocument}
+                            refreshTrigger={refreshDocuments}
+                            selectedDocumentId={selectedDocument?.id}
+                          />
+                        )}
+                        {activeTab === "metrics" && metrics && (
+                          <div className="space-y-6">
+                            {/* metrics summary */}
+                            <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">
+                              System Analytics
+                            </h3>
+                            <div className="grid grid-cols-2 gap-6">
+                              {[
+                                {
+                                  label: "Documents",
+                                  value: metrics.documents_count,
+                                  icon: "📄",
+                                  color: "from-blue-500 to-cyan-400",
+                                },
+                                {
+                                  label: "Text Chunks",
+                                  value: metrics.chunks_count,
+                                  icon: "🧩",
+                                  color: "from-purple-500 to-pink-400",
+                                },
+                                {
+                                  label: "Avg/Doc",
+                                  value: metrics.avg_chunks_per_doc.toFixed(1),
+                                  icon: "📊",
+                                  color: "from-emerald-500 to-green-400",
+                                },
+                                {
+                                  label: "Storage",
+                                  value: `${Math.round(metrics.total_file_size / 1024 / 1024)} MB`,
+                                  icon: "💾",
+                                  color: "from-amber-500 to-orange-400",
+                                },
+                              ].map((metric, index) => (
+                                <div
+                                  key={index}
+                                  className="bg-white/70 rounded-2xl p-6 border border-white/40 shadow-lg"
+                                >
+                                  <div
+                                    className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${metric.color} mb-4 shadow-lg`}
+                                  >
+                                    <span className="text-xl">
+                                      {metric.icon}
+                                    </span>
+                                  </div>
+                                  <div className="text-3xl font-black text-gray-900 mb-1">
+                                    {metric.value}
+                                  </div>
+                                  <div className="text-sm text-gray-600 font-semibold">
+                                    {metric.label}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}</div>
-                        </div>}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <UploadProgress taskId={uploadTaskId} onComplete={handleUploadComplete} onError={handleUploadError} />
+                    <UploadProgress
+                      taskId={uploadTaskId}
+                      onComplete={handleUploadComplete}
+                      onError={handleUploadError}
+                    />
                   </div>
 
                   <div className="space-y-8">
@@ -265,19 +551,110 @@ function App() {
                       <div className="bg-gradient-to-r from-indigo-100/60 via-purple-100/40 to-pink-100/60 p-8 border-b border-white/30">
                         <div className="flex flex-col lg:flex-row items-center justify-between">
                           <div className="text-center lg:text-left mb-6 lg:mb-0">
-                            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 rounded-3xl mb-4 shadow-2xl"><svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" /></svg></div>
-                            <h2 className="text-4xl font-black text-gray-900 mb-3">Intelligent Search</h2>
-                            <p className="text-lg text-gray-700">Ask anything and get instant AI-powered answers</p>
+                            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 rounded-3xl mb-4 shadow-2xl">
+                              <svg
+                                className="w-10 h-10 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                            <h2 className="text-4xl font-black text-gray-900 mb-3">
+                              Intelligent Search
+                            </h2>
+                            <p className="text-lg text-gray-700">
+                              Ask anything and get instant AI-powered answers
+                            </p>
                           </div>
-                          {selectedDocument && <div className="bg-white/80 rounded-2xl p-6 border border-white/60 shadow-xl"><div className="flex items-center space-x-4"><div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-400 rounded-xl flex items-center justify-center"><svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" /></svg></div><div className="flex-1"><p className="text-sm text-gray-600 font-semibold">Focused Search:</p><p className="font-bold text-gray-900 truncate">{selectedDocument.title}</p></div><button onClick={() => setSelectedDocument(null)} className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-full"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg></button></div></div>}
+                          {selectedDocument && (
+                            <div className="bg-white/80 rounded-2xl p-6 border border-white/60 shadow-xl">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-400 rounded-xl flex items-center justify-center">
+                                  <svg
+                                    className="w-6 h-6 text-white"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-sm text-gray-600 font-semibold">
+                                    Focused Search:
+                                  </p>
+                                  <p className="font-bold text-gray-900 truncate">
+                                    {selectedDocument.title}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => setSelectedDocument(null)}
+                                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-full"
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="p-8"><SearchBar onSearch={handleSearch} /></div>
+                      <div className="p-8">
+                        <SearchBar onSearch={handleSearch} />
+                      </div>
                     </div>
 
                     <div className="bg-white rounded-3xl border border-gray-200 shadow-3xl min-h-[600px] overflow-hidden">
-                      <div className="p-8 border-b border-white/20"><div className="flex items-center space-x-4"><div className="w-16 h-16 bg-gradient-to-br from-violet-600 via-purple-500 to-pink-400 rounded-2xl flex items-center justify-center shadow-xl"><svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" /></svg></div><div><h3 className="text-3xl font-black text-gray-900">AI Intelligence Hub</h3><p className="text-lg text-gray-700">Powered by advanced neural networks</p></div></div></div>
-                      <div className="p-8"><ModernSearchResults searchResponse={searchResponse} loading={searchLoading} error={searchError} /></div>
+                      <div className="p-8 border-b border-white/20">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-16 h-16 bg-gradient-to-br from-violet-600 via-purple-500 to-pink-400 rounded-2xl flex items-center justify-center shadow-xl">
+                            <svg
+                              className="w-8 h-8 text-white"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="text-3xl font-black text-gray-900">
+                              AI Intelligence Hub
+                            </h3>
+                            <p className="text-lg text-gray-700">
+                              Powered by advanced neural networks
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-8">
+                        <ModernSearchResults
+                          searchResponse={searchResponse}
+                          loading={searchLoading}
+                          error={searchError}
+                          conversationHistory={conversationHistory}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -289,16 +666,34 @@ function App() {
         <footer className="px-8 py-12 text-center">
           <div className="max-w-4xl mx-auto">
             <div className="bg-white/20 backdrop-blur-xl rounded-2xl p-8 border border-white/40 shadow-xl">
-              <p className="text-gray-600 text-lg">Powered by cutting-edge AI technology • Built for the future of document intelligence</p>
+              <p className="text-gray-600 text-lg">
+                Powered by cutting-edge AI technology • Built for the future of
+                document intelligence
+              </p>
             </div>
           </div>
         </footer>
       </div>
       {showHowItWorks && (
-        <HowItWorks modal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 overflow-y-auto">
+          <div className="relative w-full max-w-5xl mx-4 my-8">
+            <button
+              onClick={() => setShowHowItWorks(false)}
+              className="absolute top-4 right-4 z-10 text-white bg-black/40 hover:bg-black/60 rounded-full p-2 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <HowItWorks />
+          </div>
+        </div>
       )}
       {showOnboardingModal && (
-        <OnboardingModal isOpen={showOnboardingModal} onClose={() => setShowOnboardingModal(false)} />
+        <OnboardingModal
+          isOpen={showOnboardingModal}
+          onClose={() => setShowOnboardingModal(false)}
+        />
       )}
     </div>
   );

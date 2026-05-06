@@ -1,0 +1,26 @@
+flowchart TB
+  subgraph Frontend
+    UI[React UI]
+  end
+  subgraph Backend
+    API[FastAPI Controllers]
+    ING[Ingestion Service]
+    RET[Retrieval Service]
+    GEN[Generation Service]
+    OCR[OCR Service]
+    MET[Metrics Service]
+  end
+  subgraph Data
+    DB[(PostgreSQL)]
+    VEC[(Vector Store)]
+  end
+  UI --> API
+  API --> ING
+  API --> RET
+  API --> GEN
+  API --> OCR
+  API --> MET
+  ING --> DB
+  ING --> VEC
+  RET --> VEC
+  GEN --> RET

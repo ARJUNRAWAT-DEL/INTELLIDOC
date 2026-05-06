@@ -1,17 +1,16 @@
 """
 Simplified Model Manager - GROQ-focused approach
-Minimal local models, maximum GROQ power
+Improved local quality with extractive answer generation and hybrid reranking.
 """
 
-import os
-import warnings
-import logging
 from typing import Dict, List, Any, Optional
+import re
+from collections import Counter
 
-from .config import settings
 from .logger import logger
 import threading
 import time
+from .config import settings as cfg
 
 # Simplified imports - only what we absolutely need
 try:
@@ -37,6 +36,23 @@ class SimpleTextGenerator:
 class SimplifiedModelManager:
     """Simplified model manager focused on GROQ integration"""
 
+    _STOP_WORDS = {
+        "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "have", "how",
+        "i", "in", "is", "it", "its", "of", "on", "or", "that", "the", "to", "was", "were", "what",
+        "when", "where", "which", "who", "why", "with", "your", "you", "me", "my", "we", "our", "their",
+        "this", "these", "those", "can", "could", "should", "would", "do", "does", "did", "about"
+    }
+
+    _QUERY_EXPANSIONS = {
+        "score": ["marks", "grade", "percentage", "result", "cgpa", "gpa"],
+        "marks": ["score", "grade", "percentage", "result"],
+        "grade": ["score", "marks", "percentage", "result"],
+        "date": ["deadline", "schedule", "exam", "due", "last"],
+        "deadline": ["date", "last", "due"],
+        "fees": ["fee", "amount", "payment", "cost"],
+        "eligibility": ["criteria", "requirements", "qualification"],
+    }
+
     def __init__(self):
         self._models = {}
         self._loading_lock = threading.Lock()
@@ -56,11 +72,11 @@ class SimplifiedModelManager:
         # Only load embeddings if available
         if SENTENCE_TRANSFORMERS_AVAILABLE:
             try:
-                logger.info(f"Loading embedding model: {settings.embedding_model}")
+                logger.info(f"Loading embedding model: {cfg.embedding_model}")
                 start_time = time.time()
                 
                 self._models['embeddings'] = SentenceTransformer(
-                    settings.embedding_model,
+                    cfg.embedding_model,
                     device=self._device
                 )
                 
@@ -110,23 +126,20 @@ class SimplifiedModelManager:
         return self.get_embeddings(texts)
 
     def generate_answer(self, query: str, contexts: List[str]) -> str:
-        """Generate answer using simple fallback"""
+        """Generate grounded extractive answer from contexts."""
         if not contexts:
             return "No relevant context found for the query."
-        
-        # Simple context-based response
-        context_text = " ".join(contexts[:2])  # Use first 2 contexts
-        
-        if any(word in query.lower() for word in ['score', 'mark', 'grade', 'percentage']):
-            # Extract numbers from context for academic queries
-            import re
-            numbers = re.findall(r'\b\d+\b', context_text)
-            if numbers:
-                return f"Based on the document, relevant scores/numbers found: {', '.join(numbers[:5])}. Please check the GROQ AI response for detailed interpretation."
-        
-        # Generic response
-        preview = context_text[:200] + "..." if len(context_text) > 200 else context_text
-        return f"Based on the context: {preview}. For detailed analysis, please refer to the GROQ AI response."
+
+        answer = self._extractive_answer(query, contexts)
+        if answer:
+            return answer
+
+        # Final fallback if extraction fails
+        context_text = " ".join(contexts[:2]).strip()
+        if not context_text:
+            return "I could not find the answer in the provided context."
+        preview = context_text[:420] + "..." if len(context_text) > 420 else context_text
+        return preview
 
     def get_reranker(self):
         """Get reranker - simplified version"""
@@ -172,39 +185,142 @@ class SimplifiedModelManager:
             # Fallback to truncated text
             return text[:300] + "..." if len(text) > 300 else text
 
-    def rerank_results(self, query: str, candidates: List[str]) -> List[str]:
-        """
-        Simple reranking based on keyword matching
-        """
+    def rerank_results(self, query: str, candidates: List[Any]) -> List[Any]:
+        """Hybrid reranking with semantic score + lexical relevance."""
         if not candidates:
             return candidates
-        
+
+        input_is_string_list = isinstance(candidates[0], str)
+        packed_candidates: List[Dict[str, Any]] = []
+
+        for idx, candidate in enumerate(candidates):
+            if isinstance(candidate, dict):
+                packed_candidates.append(candidate)
+            else:
+                packed_candidates.append({"text": str(candidate), "_idx": idx})
+
         try:
-            # Simple keyword-based scoring
-            query_words = set(query.lower().split())
-            scored_candidates = []
-            
-            for candidate in candidates:
-                candidate_words = set(candidate.lower().split())
-                # Calculate overlap score
-                overlap = len(query_words.intersection(candidate_words))
-                # Bonus for exact phrase matches
-                if query.lower() in candidate.lower():
-                    overlap += 10
-                scored_candidates.append((overlap, candidate))
-            
-            # Sort by score (descending)
-            scored_candidates.sort(key=lambda x: x[0], reverse=True)
-            
-            # Return reranked candidates
-            reranked = [candidate for _, candidate in scored_candidates]
-            logger.info(f"Reranked {len(candidates)} candidates using simple keyword matching")
+            expanded_terms = self._expanded_query_terms(query)
+            query_text = query.lower().strip()
+            wants_numeric = self._is_numeric_query(query_text)
+
+            for candidate in packed_candidates:
+                text = str(candidate.get("text", ""))
+                text_lower = text.lower()
+                lexical = self._lexical_relevance(expanded_terms, text)
+                semantic = float(candidate.get("score", 0.0))
+                phrase_boost = 0.2 if query_text and query_text in text_lower else 0.0
+                numeric_boost = 0.1 if wants_numeric and re.search(r"\d", text) else 0.0
+
+                hybrid_score = (semantic * 0.65) + (lexical * 0.35) + phrase_boost + numeric_boost
+                candidate["rerank_score"] = float(hybrid_score)
+
+            reranked = sorted(
+                packed_candidates,
+                key=lambda c: c.get("rerank_score", c.get("score", 0.0)),
+                reverse=True,
+            )
+            logger.info(f"Reranked {len(candidates)} candidates with hybrid scoring")
+
+            if input_is_string_list:
+                return [c.get("text", "") for c in reranked]
             return reranked
-            
+
         except Exception as e:
             logger.error(f"Reranking failed: {e}")
-            # Return original order if reranking fails
             return candidates
+
+    def _normalize_token(self, token: str) -> str:
+        return re.sub(r"[^a-z0-9%\-]", "", token.lower())
+
+    def _tokenize(self, text: str) -> List[str]:
+        raw = re.split(r"\s+", text.lower())
+        out: List[str] = []
+        for t in raw:
+            n = self._normalize_token(t)
+            if len(n) > 1 and n not in self._STOP_WORDS:
+                out.append(n)
+        return out
+
+    def _expanded_query_terms(self, query: str) -> set:
+        terms = set(self._tokenize(query))
+        expanded = set(terms)
+        for t in list(terms):
+            for extra in self._QUERY_EXPANSIONS.get(t, []):
+                expanded.add(extra)
+        return expanded
+
+    def _lexical_relevance(self, query_terms: set, text: str) -> float:
+        if not query_terms:
+            return 0.0
+        tokens = self._tokenize(text)
+        if not tokens:
+            return 0.0
+        token_counts = Counter(tokens)
+        overlap = query_terms.intersection(set(tokens))
+        coverage = len(overlap) / max(1, len(query_terms))
+        freq_score = sum(token_counts.get(t, 0) for t in overlap) / max(1, len(tokens))
+        return (coverage * 0.75) + (freq_score * 0.25)
+
+    def _is_numeric_query(self, query: str) -> bool:
+        return any(k in query for k in ["how many", "total", "count", "score", "marks", "grade", "percentage", "amount", "fee"])
+
+    def _is_date_query(self, query: str) -> bool:
+        return any(k in query for k in ["date", "deadline", "when", "schedule", "last date", "exam date"])
+
+    def _split_sentences(self, text: str) -> List[str]:
+        parts = re.split(r"(?<=[.!?])\s+|\n+", text)
+        return [p.strip() for p in parts if len(p.strip()) >= 25]
+
+    def _extractive_answer(self, query: str, contexts: List[str]) -> str:
+        query_lower = query.lower().strip()
+        query_terms = self._expanded_query_terms(query_lower)
+        wants_numeric = self._is_numeric_query(query_lower)
+        wants_date = self._is_date_query(query_lower)
+
+        sentence_rows: List[Dict[str, Any]] = []
+        for cidx, ctx in enumerate(contexts[:8]):
+            for sidx, sentence in enumerate(self._split_sentences(ctx)):
+                sent_lower = sentence.lower()
+                lexical = self._lexical_relevance(query_terms, sentence)
+                phrase_boost = 0.2 if query_lower and query_lower in sent_lower else 0.0
+                numeric_boost = 0.12 if wants_numeric and re.search(r"\d", sentence) else 0.0
+                date_boost = 0.12 if wants_date and re.search(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b\d{1,2}\s+[A-Za-z]+\s+\d{4}\b", sentence) else 0.0
+                length_penalty = 0.05 if len(sentence.split()) > 60 else 0.0
+                score = lexical + phrase_boost + numeric_boost + date_boost - length_penalty
+
+                if score <= 0.04:
+                    continue
+
+                sentence_rows.append({
+                    "context_idx": cidx,
+                    "sentence_idx": sidx,
+                    "text": sentence,
+                    "score": score,
+                })
+
+        if not sentence_rows:
+            return ""
+
+        # Pick strongest evidence, then restore natural order for readability.
+        top = sorted(sentence_rows, key=lambda r: r["score"], reverse=True)[:5]
+        top_sorted = sorted(top, key=lambda r: (r["context_idx"], r["sentence_idx"]))
+
+        dedup = []
+        seen = set()
+        for row in top_sorted:
+            key = re.sub(r"\W+", "", row["text"].lower())
+            if key and key not in seen:
+                seen.add(key)
+                dedup.append(row["text"])
+
+        if not dedup:
+            return ""
+
+        answer = " ".join(dedup)
+        if len(answer) > 1200:
+            answer = answer[:1197].rstrip() + "..."
+        return answer
 
     def get_model_info(self) -> Dict[str, Any]:
         """Get model information"""
