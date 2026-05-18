@@ -400,62 +400,142 @@ def clean_answer(query: str, answer: str) -> str:
     # Allow longer, more detailed answers
     return answer.strip()
 
+# ── Intent detection helpers ─────────────────────────────────────────────────
+
+_GREETING_WORDS = {
+    "hi", "hii", "hiii", "hello", "hey", "hiya", "heya", "howdy",
+    "greetings", "sup", "yo", "hola", "namaste", "ola", "hai",
+}
+
+_GREETING_PATTERNS = [
+    r"^h+[ie]+y*[!?.]*$",
+    r"^good\s+(morning|afternoon|evening|day)[!?.]*$",
+    r"^how\s+are\s+you[!?.]*$",
+    r"^what'?s\s+up[!?.]*$",
+    r"^(thanks?|thank\s+you|ty|thx)[!?. ]*$",
+    r"^(bye|goodbye|see\s+you|take\s+care)[!?.]*$",
+    r"^(ok|okay|cool|great|perfect|nice|got\s+it|sounds\s+good)[!?.]*$",
+]
+
+_SUMMARY_TRIGGERS = {
+    "summarize", "summarise", "summary", "summarization",
+    "overview", "brief me", "brief on", "what is this about",
+    "what is this document", "what does this document say",
+    "tell me about this document", "explain this document",
+    "give me an overview", "what is the document about",
+    "gist of", "main points of this", "tldr", "tl;dr",
+}
+
+_GENERAL_KNOWLEDGE_PATTERNS = [
+    r"interview\s+tip", r"interview\s+prep", r"how\s+to\s+prepare",
+    r"career\s+advice", r"job\s+tip", r"salary\s+negotiat",
+    r"how\s+to\s+improve", r"best\s+practice", r"recommend\s+me",
+    r"what\s+should\s+i\s+(do|say|wear|bring)",
+    r"how\s+do\s+i\s+", r"can\s+you\s+help\s+me\s+with",
+    r"write\s+me\s+a\s+cover\s+letter", r"improve\s+my\s+cv",
+    r"improve\s+my\s+resume",
+]
+
+
+def _detect_intent(query: str) -> str:
+    """
+    Returns one of: 'greeting' | 'summary' | 'general_knowledge' | 'document_qa'
+    """
+    q = query.strip()
+    q_lower = q.lower()
+    q_clean = re.sub(r"[^a-z\s]", "", q_lower).strip()
+    words = set(q_clean.split())
+
+    # ── Greeting ─────────────────────────────────────────────────────────────
+    if len(words) <= 4 and words & _GREETING_WORDS:
+        return "greeting"
+    for pattern in _GREETING_PATTERNS:
+        if re.match(pattern, q_lower):
+            return "greeting"
+
+    # ── Explicit summary request ──────────────────────────────────────────────
+    if any(trigger in q_lower for trigger in _SUMMARY_TRIGGERS):
+        return "summary"
+
+    # ── General knowledge / advisory request ─────────────────────────────────
+    for pattern in _GENERAL_KNOWLEDGE_PATTERNS:
+        if re.search(pattern, q_lower):
+            return "general_knowledge"
+
+    return "document_qa"
+
+
 def synthesize_answer(
     query: str,
     contexts: List[Dict[str, Any]],
     answer_length: str = "balanced",
-    answer_mode: str = "summary"
+    answer_mode: str = "qa"
 ) -> str:
-    """Synthesize answer from contexts using model manager"""
-    context_text = "\n\n".join([c['text'] for c in contexts[:8]])  # Increased to 8 for maximum accuracy
+    """Synthesize answer from contexts using intent-aware routing."""
+    intent = _detect_intent(query)
+    logger.info(f"Query intent: '{intent}' for query: '{query}'")
 
-    length_instructions = {
-        "short": "Keep the answer to 3-5 lines.",
-        "balanced": "Give a clear explanation with key points.",
-        "detailed": "Give a detailed answer with sections, bullet points, and citations when possible.",
-    }
-    mode_instructions = {
-        "summary": "Focus on summarizing the document context.",
-        "qa": "Answer the user's question directly and precisely.",
-        "keypoints": "Return the key points in bullet form.",
-        "pageexplanation": "Explain the selected page or page range in plain language.",
-        "actionitems": "Extract actionable items, deadlines, and follow-ups.",
-    }
+    # ── Greeting: respond conversationally, never summarize ──────────────────
+    if intent == "greeting":
+        return (
+            "Hello! I'm your document assistant. I can answer questions about your "
+            "uploaded document, summarize it, extract key points, or identify action items. "
+            "What would you like to know?"
+        )
 
-    instruction_block = (
-        f"Answer mode: {mode_instructions.get(answer_mode, mode_instructions['summary'])}\n"
-        f"Answer length: {length_instructions.get(answer_length, length_instructions['balanced'])}\n"
-        "Always stay grounded in the provided context and cite page numbers when available."
-    )
+    context_text = "\n\n".join([c["text"] for c in contexts[:8]])
 
-    # Handle summaries
-    if answer_mode == "summary" or "summary" in query.lower():
-        full_text = " ".join(c['text'] for c in contexts)
+    # ── Explicit summary request ─────────────────────────────────────────────
+    if intent == "summary" or answer_mode == "summary":
+        full_text = " ".join(c["text"] for c in contexts)
         return generate_summary(full_text)
 
-    # Handle exam dates
+    # ── Key points mode ──────────────────────────────────────────────────────
+    if answer_mode == "keypoints":
+        full_text = " ".join(c["text"] for c in contexts)
+        return generate_summary(full_text)
+
+    # ── Handle page count questions ──────────────────────────────────────────
+    if any(phrase in query.lower() for phrase in ["total pages", "number of pages", "how many pages", "page count"]):
+        return (
+            "I cannot determine the total number of pages from the document text. "
+            "Page count is stored in document metadata during upload."
+        )
+
+    # ── Handle exam / last-date extraction ──────────────────────────────────
     if "exam" in query.lower():
         extracted = extract_date_from_context(context_text)
         if extracted:
             return f"The Preliminary Examination is scheduled for {extracted}."
 
-    # Handle last date
     if "last date" in query.lower():
         extracted = extract_date_from_context(context_text)
         if extracted:
             return f"The last date is {extracted}."
-    
-    # Handle page count questions - these require document metadata, not text content
-    if any(phrase in query.lower() for phrase in ["total pages", "number of pages", "how many pages", "page count"]):
-        logger.warning(f"Page count question detected: {query}")
-        return "I cannot determine the total number of pages from the document content. Page count information would need to be extracted from document metadata during upload."
 
-    # Use model manager for answer generation
-    context_texts = [c['text'] for c in contexts[:8]]  # Increased to 8 for maximum accuracy
-    logger.info(f"Generating answer for query: '{query}' with {len(context_texts)} contexts")
+    # ── General QA via local model ────────────────────────────────────────────
+    length_instructions = {
+        "short": "Keep the answer to 3-5 lines.",
+        "balanced": "Give a clear, focused answer with key points.",
+        "detailed": "Give a detailed answer with sections and bullet points where useful.",
+    }
+    mode_instructions = {
+        "qa": "Answer the user's question directly and precisely based on the document.",
+        "pageexplanation": "Explain the selected page or page range in plain language.",
+        "actionitems": "Extract actionable items, deadlines, and follow-ups.",
+        "general_knowledge": "Use the document context plus general knowledge to answer helpfully.",
+    }
+    effective_mode = "general_knowledge" if intent == "general_knowledge" else answer_mode
+    instruction_block = (
+        f"Instruction: {mode_instructions.get(effective_mode, mode_instructions['qa'])}\n"
+        f"Length: {length_instructions.get(answer_length, length_instructions['balanced'])}\n"
+        "Stay grounded in the provided context. Cite page numbers when available."
+    )
+
+    context_texts = [c["text"] for c in contexts[:8]]
+    logger.info(f"Generating local answer for query: '{query}' with {len(context_texts)} contexts")
     formatted_query = f"{query}\n\n{instruction_block}"
     raw_answer = model_manager.generate_answer(formatted_query, context_texts)
-    logger.info(f"Generated raw answer: '{raw_answer[:100]}...' (length: {len(raw_answer)})")
-    cleaned_answer = clean_answer(query, raw_answer)
-    logger.info(f"Final cleaned answer: '{cleaned_answer[:100]}...' (length: {len(cleaned_answer)})")
-    return cleaned_answer
+    cleaned = clean_answer(query, raw_answer)
+    logger.info(f"Local answer: '{cleaned[:100]}...'")
+    return cleaned

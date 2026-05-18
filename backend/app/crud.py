@@ -15,7 +15,7 @@ from . import models
 from .logger import logger
 
 # ------------------ Create document ------------------
-def create_document(db: Session, title: str, content: str, summary: str, chunks: list):
+def create_document(db: Session, title: str, content: str, summary: str, chunks: list, user_email: Optional[str] = None):
     """
     Creates a document and its associated chunks with embeddings using OPTIMIZED batch inserts.
     `chunks` should be a list of dicts: { "text": str, "embedding": list[float], "page_number": int, "paragraph_number": int }
@@ -24,7 +24,8 @@ def create_document(db: Session, title: str, content: str, summary: str, chunks:
         db_doc = models.Document(
             title=title,
             content=content,
-            summary=summary
+            summary=summary,
+            user_email=user_email
         )
         db.add(db_doc)
         db.commit()
@@ -89,9 +90,9 @@ def get_documents(db: Session, skip: int = 0, limit: int = 100) -> List[models.D
         .all()
     )
 
-def get_documents_summary(db: Session, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
-    """Get documents summary with chunk counts"""
-    result = (
+def get_documents_summary(db: Session, skip: int = 0, limit: int = 100, user_email: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Get documents summary with chunk counts, filtered by owner when user_email is provided."""
+    query = (
         db.query(
             models.Document.id,
             models.Document.title,
@@ -104,10 +105,10 @@ def get_documents_summary(db: Session, skip: int = 0, limit: int = 100) -> List[
         .outerjoin(models.Chunk)
         .group_by(models.Document.id)
         .order_by(desc(models.Document.created_at))
-        .offset(skip)
-        .limit(limit)
-        .all()
     )
+    if user_email:
+        query = query.filter(models.Document.user_email == user_email)
+    result = query.offset(skip).limit(limit).all()
 
     return [
         {
@@ -122,14 +123,17 @@ def get_documents_summary(db: Session, skip: int = 0, limit: int = 100) -> List[
         for row in result
     ]
 
-def get_document(db: Session, doc_id: int) -> Optional[models.Document]:
-    """Get document by ID"""
-    return db.query(models.Document).filter(models.Document.id == doc_id).first()
+def get_document(db: Session, doc_id: int, user_email: Optional[str] = None) -> Optional[models.Document]:
+    """Get document by ID. Returns None if user_email is provided and doesn't match owner."""
+    doc = db.query(models.Document).filter(models.Document.id == doc_id).first()
+    if doc and user_email and doc.user_email and doc.user_email != user_email:
+        return None
+    return doc
 
-def delete_document(db: Session, doc_id: int) -> bool:
-    """Delete document and its chunks"""
+def delete_document(db: Session, doc_id: int, user_email: Optional[str] = None) -> bool:
+    """Delete document and its chunks. Ownership-checked when user_email is provided."""
     try:
-        doc = get_document(db, doc_id)
+        doc = get_document(db, doc_id, user_email=user_email)
         if doc:
             db.delete(doc)
             db.commit()

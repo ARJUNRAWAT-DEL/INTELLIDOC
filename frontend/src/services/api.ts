@@ -541,6 +541,7 @@ export class ApiService {
 
     const response = await fetch(`${API_URL}/upload`, {
       method: "POST",
+      headers: { ...ApiService.getAuthHeaders() },
       body: formData,
     });
 
@@ -682,6 +683,7 @@ export class ApiService {
   ): Promise<DocumentSummary[]> {
     const response = await fetch(
       `${API_URL}/documents?skip=${skip}&limit=${limit}`,
+      { headers: { ...ApiService.getAuthHeaders() } },
     );
 
     if (!response.ok) {
@@ -693,7 +695,9 @@ export class ApiService {
   }
 
   static async getDocument(id: number): Promise<Document> {
-    const response = await fetch(`${API_URL}/documents/${id}`);
+    const response = await fetch(`${API_URL}/documents/${id}`, {
+      headers: { ...ApiService.getAuthHeaders() },
+    });
 
     if (!response.ok) {
       const error = await ApiService.parseJsonSafe(response).catch(() => ({}));
@@ -706,6 +710,7 @@ export class ApiService {
   static async deleteDocument(id: number): Promise<void> {
     const response = await fetch(`${API_URL}/documents/${id}`, {
       method: "DELETE",
+      headers: { ...ApiService.getAuthHeaders() },
     });
 
     if (!response.ok) {

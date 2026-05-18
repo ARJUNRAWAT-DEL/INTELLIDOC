@@ -13,6 +13,7 @@ class Document(Base):
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     file_size = Column(Integer)
     file_type = Column(String(100))
+    user_email = Column(String(255), index=True, nullable=True)
     
     chunks = relationship("Chunk", back_populates="document", cascade="all, delete-orphan")
 

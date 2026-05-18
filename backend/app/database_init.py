@@ -7,15 +7,31 @@ from .db import engine, Base
 from . import models
 
 def create_tables():
-    """Create all database tables"""
+    """Create all database tables and run any required migrations."""
     try:
         print("Creating database tables...")
         Base.metadata.create_all(bind=engine)
         print("Database tables created successfully!")
+        _migrate_add_user_email()
         return True
     except Exception as e:
         print(f"Error creating tables: {e}")
         return False
+
+
+def _migrate_add_user_email():
+    """Add user_email column to documents table if it doesn't exist (SQLite migration)."""
+    try:
+        from sqlalchemy import inspect as sa_inspect, text
+        insp = sa_inspect(engine)
+        cols = [c["name"] for c in insp.get_columns("documents")]
+        if "user_email" not in cols:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE documents ADD COLUMN user_email VARCHAR(255)"))
+                conn.commit()
+            print("Migration: added user_email column to documents table")
+    except Exception as e:
+        print(f"Migration warning (user_email): {e}")
 
 def drop_tables():
     """Drop all database tables (use with caution!)"""

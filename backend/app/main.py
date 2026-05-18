@@ -61,6 +61,17 @@ if USE_GROQ:
 active_ai_utils = ai_utils
 logger.info("Using local models as primary + GROQ for dual answers" if groq_client else "Using local models only")
 
+# In-memory session store: token → user email
+_active_sessions: dict = {}
+
+def _get_user_email_from_request(request: Request) -> Optional[str]:
+    """Extract email from Bearer token in Authorization header."""
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        token = auth[7:].strip()
+        return _active_sessions.get(token)
+    return None
+
 # Initialize FastAPI app
 app = FastAPI(
     title="AI Document Search Tool",
@@ -776,6 +787,7 @@ def auth_register(payload: dict, db: Session = Depends(get_db)):
         user = crud.create_user(db, email=email, password_hash=pwd_hash, password_salt=salt, name=name)
 
         token = f"dev-token-{secrets.token_hex(8)}"
+        _active_sessions[token] = user.email
         return JSONResponse({"token": token, "user": {"email": user.email, "name": user.name}}, status_code=200)
     except HTTPException:
         raise
@@ -808,6 +820,7 @@ def auth_login(payload: dict, db: Session = Depends(get_db)):
             return JSONResponse({'detail': 'Invalid credentials'}, status_code=400)
 
         token = f"dev-token-{secrets.token_hex(8)}"
+        _active_sessions[token] = user.email
         return JSONResponse({"token": token, "user": {"email": user.email, "name": user.name}}, status_code=200)
     except HTTPException:
         raise
@@ -855,6 +868,7 @@ def auth_google(payload: dict, db: Session = Depends(get_db)):
             user = crud.create_user(db, email=email, password_hash='', password_salt='', name=name or payload_json.get('name'))
 
         auth_token = f"dev-token-{secrets.token_hex(8)}"
+        _active_sessions[auth_token] = user.email
         return JSONResponse({"token": auth_token, "user": {"email": user.email, "name": user.name, "is_admin": email.lower() == "rawatarjun98@gmail.com"}}, status_code=200)
     except HTTPException:
         raise
@@ -948,12 +962,16 @@ async def upload_file(
             logger.error(f"Failed to read uploaded file {file.filename}: {e}")
             raise
 
+        # Identify uploader (optional — documents are still accepted without login)
+        uploader_email = _get_user_email_from_request(request)
+
         # Start background processing (do NOT pass request-scoped DB)
         background_tasks.add_task(
             process_document_async,
             file_content,
             file.filename,
-            task_id
+            task_id,
+            uploader_email
         )
 
         logger.info(f"Upload started for {file.filename} with task ID: {task_id}")
@@ -993,7 +1011,7 @@ def search_documents(
     offset: int = Query(0, ge=0, description="Results offset"),
     doc_id: Optional[int] = Query(None, description="Search within specific document"),
     answer_length: str = Query("balanced", description="short|balanced|detailed"),
-    answer_mode: str = Query("summary", description="summary|qa|keypoints|pageexplanation|actionitems"),
+    answer_mode: str = Query("qa", description="summary|qa|keypoints|pageexplanation|actionitems"),
     page_range: str = Query("entire", description="entire|specific|range"),
     specific_page: Optional[int] = Query(None, description="Specific page to search"),
     start_page: Optional[int] = Query(None, description="Page range start"),
@@ -1284,21 +1302,24 @@ def export_answer(export_format: str, payload: schemas.AnswerExportIn):
 # Document management endpoints
 @app.get("/documents", response_model=List[schemas.DocumentSummary])
 def list_documents(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, le=200),
     db: Session = Depends(get_db)
 ):
     try:
-        documents = crud.get_documents_summary(db, skip=skip, limit=limit)
+        user_email = _get_user_email_from_request(request)
+        documents = crud.get_documents_summary(db, skip=skip, limit=limit, user_email=user_email)
         return [schemas.DocumentSummary(**doc) for doc in documents]
     except Exception as e:
         logger.error(f"Failed to list documents: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve documents")
 
 @app.get("/documents/{doc_id}", response_model=schemas.Document)
-def get_document(doc_id: int, db: Session = Depends(get_db)):
+def get_document(doc_id: int, request: Request, db: Session = Depends(get_db)):
     try:
-        doc = crud.get_document(db, doc_id)
+        user_email = _get_user_email_from_request(request)
+        doc = crud.get_document(db, doc_id, user_email=user_email)
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
         return doc
@@ -1309,9 +1330,10 @@ def get_document(doc_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to retrieve document")
 
 @app.delete("/documents/{doc_id}")
-def delete_document(doc_id: int, db: Session = Depends(get_db)):
+def delete_document(doc_id: int, request: Request, db: Session = Depends(get_db)):
     try:
-        success = crud.delete_document(db, doc_id)
+        user_email = _get_user_email_from_request(request)
+        success = crud.delete_document(db, doc_id, user_email=user_email)
         if not success:
             raise HTTPException(status_code=404, detail="Document not found")
         return {"message": f"Document {doc_id} deleted successfully"}

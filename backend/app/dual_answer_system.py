@@ -40,33 +40,35 @@ def _split_sentences(text: str) -> List[str]:
 
 
 def _format_groq_answer(query: str, raw_answer: str, contexts: List[str]) -> str:
+    """Clean up the raw GROQ answer. Only add structure if not already present."""
     answer = (raw_answer or "").strip()
     if not answer:
-        answer = "I could not find enough context to answer this question accurately."
+        return "I could not find enough context to answer this question accurately."
 
-    # Remove old forced sections if a model still emits them.
+    # Strip any stray trailing prompts the model sometimes emits
     lower_answer = answer.lower()
-    for marker in ["key points:", "would you like to know more?"]:
+    for marker in ["would you like to know more?", "let me know if you need"]:
         pos = lower_answer.find(marker)
         if pos != -1:
             answer = answer[:pos].strip()
             lower_answer = answer.lower()
 
-    # Respect explicit formatting if already present.
-    if "direct answer:" in lower_answer or "elaboration:" in lower_answer:
+    # If the model already formatted the answer with sections, keep it as-is
+    structured_markers = [
+        "direct answer:", "elaboration:", "comprehensive explanation:",
+        "key insights:", "supporting evidence:", "summary:", "overview:",
+    ]
+    if any(m in lower_answer for m in structured_markers):
         return answer
 
-    # Adaptive brief + elaboration formatting.
+    # For greetings and short responses, return as-is
     sentences = _split_sentences(answer)
-    if not sentences:
+    if not sentences or len(sentences) <= 2:
         return answer
 
-    if len(sentences) == 1:
-        return f"Direct Answer: {sentences[0]}"
-
+    # For longer unstructured answers, lightly wrap with Direct Answer / Elaboration
     direct_answer = sentences[0]
     elaboration = " ".join(sentences[1:5])
-
     return f"Direct Answer: {direct_answer}\n\nElaboration: {elaboration}"
 
 
@@ -75,116 +77,133 @@ def generate_groq_answer(
     query: str,
     contexts: List[str],
     answer_length: str = "balanced",
-    answer_mode: str = "summary"
+    answer_mode: str = "qa"
 ) -> str:
-    """Generate answer using GROQ API with enhanced quality prompting"""
+    """Generate answer using GROQ API with intent-aware prompting."""
     if not groq_client:
         return "GROQ unavailable"
-    
-    try:
-        # Prepare richer context for better grounded generation - use MORE context
-        context_text = "\n\n".join(contexts[:12])  # Increased from 8 to 12
-        if len(context_text) > 6000:  # Increased from 4500 to 6000
-            context_text = context_text[:6000] + "..."
 
+    try:
+        # ── Step 1: detect intent so we can craft the right prompt ───────────
+        from .ai_utils import _detect_intent
+        intent = _detect_intent(query)
+        logger.info(f"GROQ: detected intent='{intent}' for query='{query}'")
+
+        # ── Greeting — respond conversationally, skip RAG entirely ───────────
+        if intent == "greeting":
+            return (
+                "Hello! I'm your document assistant. I can answer questions about your "
+                "uploaded document, summarize it, extract key points, or identify action items. "
+                "What would you like to know?"
+            )
+
+        # ── Build context string ──────────────────────────────────────────────
+        context_text = "\n\n".join(contexts[:12])
+        if len(context_text) > 6000:
+            context_text = context_text[:6000] + "..."
         has_context = len(context_text.strip()) > 0
-        
-        # IMPROVED: More detailed length instructions that push for quality
-        length_instructions = {
-            "short": "Provide a concise but comprehensive answer in 2-3 well-structured paragraphs with specific details from the context.",
-            "balanced": "Provide a thorough explanation with multiple well-developed paragraphs, key points, and supporting evidence from the document. Include specific examples, numbers, or quotes where relevant.",
-            "detailed": "Provide an in-depth, comprehensive answer with multiple sections, detailed explanations, bullet points for key insights, supporting evidence, specific examples, and actionable recommendations based on the context.",
-        }
-        
-        mode_instructions = {
-            "summary": "Summarize the key information from the document comprehensively. Cover all major topics with sufficient detail and specific examples.",
-            "qa": "Answer the user's question thoroughly and precisely. Go beyond surface-level answers - provide depth, context, and supporting details from the document.",
-            "keypoints": "Extract and explain the top key points in detail, not just list them. For each point, provide context and supporting evidence.",
-            "pageexplanation": "Provide a detailed, comprehensive explanation of the selected page or page range. Cover all important information, details, and context.",
-            "actionitems": "Extract all actionable items, deadlines, follow-ups, and related information. Provide context and details for each item.",
-        }
-        
-        instruction_block = (
-            f"Answer mode: {mode_instructions.get(answer_mode, mode_instructions['summary'])}\n"
-            f"Answer length: {length_instructions.get(answer_length, length_instructions['balanced'])}\n"
-            "IMPORTANT: Provide thorough, detailed responses that exceed basic expectations. Always stay grounded in the context and cite specific details when available."
-        )
-        
+
         ats_query = _is_ats_query(query)
 
-        if has_context:
-            system_prompt = """You are an expert, highly knowledgeable document analyst with deep domain expertise.
+        length_map = {
+            "short":    "Answer in 2-3 focused paragraphs.",
+            "balanced": "Answer in 3-5 well-structured paragraphs with key evidence.",
+            "detailed": "Answer comprehensively with sections, bullet points, and specific evidence.",
+        }
+        length_instruction = length_map.get(answer_length, length_map["balanced"])
 
-Your task is to provide COMPREHENSIVE, HIGH-QUALITY answers based ONLY on the provided context.
+        # ══════════════════════════════════════════════════════════════════════
+        # INTENT: summary — full document overview
+        # ══════════════════════════════════════════════════════════════════════
+        if intent == "summary" or answer_mode == "summary":
+            system_prompt = (
+                "You are a professional document analyst. Your job is to produce a clear, "
+                "structured summary of the document based ONLY on the provided context. "
+                "Cover the main purpose, key points, and any important conclusions. "
+                "Do NOT add information not present in the context."
+            )
+            user_prompt = (
+                f"Document context:\n{context_text}\n\n"
+                f"Please provide a comprehensive summary of this document.\n"
+                f"Length: {length_instruction}"
+            )
 
-Core Instructions:
-1. Provide thorough, detailed answers that go beyond surface-level responses
-2. Use only facts present in the context; do not guess or hallucinate
-3. Include concrete details (numbers, dates, names, specific examples) when available
-4. Organize your response with clear structure and well-developed paragraphs
-5. Explain the significance of data points and provide context for all information
-6. If evidence is missing, explicitly state that the context does not contain it
-7. For document data (scores, grades, dates), provide comprehensive explanations of what each value means
-8. Include supporting evidence and specific examples for all claims
-
-Output format:
-1) "Direct Answer:" - Clear, direct response to the question (1-2 sentences)
-2) "Comprehensive Explanation:" - Detailed, well-structured explanation with multiple paragraphs, supporting evidence, and specific examples
-3) "Key Insights:" - Important takeaways and implications from the information provided
-"""
-            user_prompt = f"""Context:
-{context_text}
-
-Question: {query}
-{instruction_block}
-
-Provide a comprehensive, high-quality response that thoroughly addresses the question with detailed explanations, supporting evidence, and specific examples from the context.
-
-If the question asks for an ATS score and the document appears to be a resume/CV, provide:
-- Estimated ATS Score (0-100)
-- Score Breakdown (Keywords, Formatting, Experience Clarity, Skills Alignment)
-- Top 5 improvements to increase ATS score
-- A brief note that score is an estimate based on available text
-
-Answer:"""
-        else:
-            system_prompt = """You are an expert AI assistant with comprehensive knowledge across multiple domains.
-
-No document context is available for this query. Provide a thorough, high-quality answer using general knowledge.
-
-Rules:
-1. Provide comprehensive, detailed answers that exceed basic expectations
-2. Clearly note that your answer is based on general knowledge (not uploaded docs)
-3. Organize response with clear structure and well-developed paragraphs
-4. Include practical examples, actionable advice, and supporting details
-5. Cover multiple perspectives and important considerations
-
-Output format:
-1) "Direct Answer:" - Clear response (2-3 sentences)
-2) "Comprehensive Explanation:" - Detailed, multi-paragraph explanation with examples
-3) "Key Insights:" - Important considerations and recommendations
-"""
-
-            if ats_query:
-                user_prompt = f"""Question: {query}
-{instruction_block}
-
-Provide a comprehensive ATS-focused response. Include:
-- Detailed overview of typical ATS systems and how they work
-- Comprehensive scoring framework with all major scoring categories
-- Detailed scoring rubric by category with best practices
-- Complete resume optimization checklist with specific strategies
-- Common ATS mistakes to avoid
-- Request that user share resume text for exact document-based analysis
-
-Make this answer detailed, actionable, and comprehensive."""
+        # ══════════════════════════════════════════════════════════════════════
+        # INTENT: general_knowledge — advisory / how-to / tips (use doc as context)
+        # ══════════════════════════════════════════════════════════════════════
+        elif intent == "general_knowledge":
+            if has_context:
+                system_prompt = (
+                    "You are an expert advisor. The user has uploaded a document "
+                    "(could be a CV, report, contract, etc.) and is asking for practical advice.\n\n"
+                    "Your approach:\n"
+                    "1. Read the document context carefully to understand what it contains.\n"
+                    "2. Use the document details (skills, experience, role, content) to give "
+                    "PERSONALISED, specific advice — not generic tips.\n"
+                    "3. Combine document evidence with relevant general knowledge.\n"
+                    "4. Be concrete, actionable, and structured.\n"
+                    "5. Never ignore what is in the document — tailor every point to it."
+                )
+                user_prompt = (
+                    f"Document context:\n{context_text}\n\n"
+                    f"User question: {query}\n\n"
+                    f"Provide personalised, actionable advice based on the document above.\n"
+                    f"Length: {length_instruction}\n\n"
+                    "Structure your answer with clear sections and specific points drawn "
+                    "from the document content."
+                )
             else:
-                user_prompt = f"""Question: {query}
-{instruction_block}
+                system_prompt = (
+                    "You are an expert advisor. No document has been uploaded, so answer "
+                    "using your general knowledge. Be practical and specific."
+                )
+                user_prompt = (
+                    f"Question: {query}\n\n"
+                    f"Provide practical, actionable advice.\n"
+                    f"Length: {length_instruction}"
+                )
 
-Provide a comprehensive, high-quality answer using general knowledge. Clearly note this is general guidance (not extracted from uploaded docs), but ensure the answer is detailed, well-structured, with multiple paragraphs, specific examples, and actionable insights.
-
-Make this answer exceed basic expectations in quality and detail."""
+        # ══════════════════════════════════════════════════════════════════════
+        # INTENT: document_qa — specific question about document content
+        # ══════════════════════════════════════════════════════════════════════
+        else:
+            if has_context:
+                system_prompt = (
+                    "You are a precise document analyst. Answer the user's question "
+                    "using ONLY the information in the provided context.\n\n"
+                    "Rules:\n"
+                    "1. Answer directly — start with the answer, not with preamble.\n"
+                    "2. Support your answer with specific evidence (quotes, numbers, dates) from the context.\n"
+                    "3. If the answer is not in the context, say so clearly.\n"
+                    "4. Never hallucinate or add information not present in the context.\n\n"
+                    "Format:\n"
+                    "- Direct Answer: (1-2 sentences)\n"
+                    "- Supporting Evidence: (specific details from the document)\n"
+                    "- Additional Context: (only if relevant)"
+                )
+                extra = ""
+                if ats_query:
+                    extra = (
+                        "\n\nIf this is a CV/resume and the user asks for an ATS score, provide:\n"
+                        "- Estimated ATS Score (0-100) with justification\n"
+                        "- Score breakdown by category (Keywords, Formatting, Experience, Skills)\n"
+                        "- Top 5 specific improvements to boost the score"
+                    )
+                user_prompt = (
+                    f"Document context:\n{context_text}\n\n"
+                    f"Question: {query}\n"
+                    f"Length: {length_instruction}{extra}"
+                )
+            else:
+                system_prompt = (
+                    "You are a helpful AI assistant. No document context is available. "
+                    "Answer using general knowledge and note that no document was found."
+                )
+                user_prompt = (
+                    f"Question: {query}\n\n"
+                    f"Note: No document context is available — answer from general knowledge.\n"
+                    f"Length: {length_instruction}"
+                )
 
         # Try models with fallback - ORDER BY POWER (most powerful first)
         models_to_try = [

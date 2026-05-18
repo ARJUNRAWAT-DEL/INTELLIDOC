@@ -59,6 +59,7 @@ def process_document_async(
     file_content: bytes,
     filename: str,
     task_id: str,
+    user_email: str = None,
 ) -> None:
     """Process document asynchronously (runs in Starlette background task)."""
     session: Session = db.SessionLocal()
@@ -137,7 +138,8 @@ def process_document_async(
             title=filename,
             content=content,
             summary=summary,
-            chunks=chunk_data
+            chunks=chunk_data,
+            user_email=user_email
         )
 
         # Detect file metadata

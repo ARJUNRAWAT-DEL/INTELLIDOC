@@ -1,14 +1,26 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { Spinner } from "../components/Spinner";
-import {
-  FiTrash2,
-  FiCopy,
-  FiChevronDown,
-  FiChevronUp,
-  FiDownload,
-  FiRefreshCw,
-} from "react-icons/fi";
 import { ApiService, API_URL } from "../services/api";
+import TopNav from "../components/TopNav";
+import Sidebar from "../components/Sidebar";
+import ImprovedUpload from "../components/ImprovedUpload";
+import ImprovedDocumentList from "../components/ImprovedDocumentList";
+import ChatAIWorkspace from "../components/ChatAIWorkspace";
+
+interface ChatMessage {
+  id: string;
+  type: "user" | "ai";
+  content: string;
+  timestamp: Date;
+  sources?: string[];
+}
+
+interface ConversationEntry {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  selectedDocId: number | null;
+}
 
 interface SearchOptions {
   query: string;
@@ -26,11 +38,26 @@ interface SearchOptions {
 }
 
 const SummarizePage: React.FC = () => {
+  // Navigation & Layout
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isDark, setIsDark] = useState(true);
+  const [activeSection, setActiveSection] = useState("chat");
+
+  // Conversation history
+  const [conversations, setConversations] = useState<ConversationEntry[]>([]);
+  const [currentConvId, setCurrentConvId] = useState<string>(
+    () => `conv-${Date.now()}`
+  );
+
+  // Document management
   const [files, setFiles] = useState<Array<any>>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<any | null>(null);
+  const [filter, setFilter] = useState("");
+
+  // Chat & Query
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [query, setQuery] = useState("");
-  const [answer, setAnswer] = useState<string>("");
   const [loadingAnswer, setLoadingAnswer] = useState(false);
   const [dualInfo, setDualInfo] = useState<any | null>(null);
   const [searchResponse, setSearchResponse] = useState<any>(null);
@@ -44,12 +71,12 @@ const SummarizePage: React.FC = () => {
     "summary" | "qa" | "keypoints" | "pageexplanation" | "actionitems"
   >("summary");
   const [pageRange, setPageRange] = useState<"entire" | "specific" | "range">(
-    "entire",
+    "entire"
   );
   const [specificPage, setSpecificPage] = useState<number>(1);
   const [startPage, setStartPage] = useState<number>(1);
   const [endPage, setEndPage] = useState<number>(10);
-  const [showAdvanced, setShowAdvanced] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Upload state
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -61,8 +88,6 @@ const SummarizePage: React.FC = () => {
   const pollingRef = useRef<number | null>(null);
   const dragRef = useRef<HTMLDivElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [filter, setFilter] = useState("");
-  const [previewExpanded, setPreviewExpanded] = useState(false);
 
   useEffect(() => {
     loadDocuments();
@@ -110,6 +135,52 @@ const SummarizePage: React.FC = () => {
     } catch (e) {
       console.warn("Failed to load documents", e);
       setFiles([]);
+    }
+  };
+
+  // Auto-save current conversation whenever messages change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const firstUser = messages.find((m) => m.type === "user");
+    if (!firstUser) return;
+    const raw = firstUser.content;
+    const title = raw.length > 42 ? raw.slice(0, 40) + "…" : raw;
+    setConversations((prev) => {
+      const entry: ConversationEntry = {
+        id: currentConvId,
+        title,
+        messages: [...messages],
+        selectedDocId: selectedId,
+      };
+      const filtered = prev.filter((c) => c.id !== currentConvId);
+      return [entry, ...filtered].slice(0, 20);
+    });
+  }, [messages, currentConvId, selectedId]);
+
+  const handleNewChat = () => {
+    setCurrentConvId(`conv-${Date.now()}`);
+    setMessages([]);
+    setQuery("");
+    setSelectedId(null);
+    setSelectedDoc(null);
+    setMetrics(null);
+    setDualInfo(null);
+    setSearchResponse(null);
+  };
+
+  const handleSelectConversation = (id: string) => {
+    if (id === currentConvId) return;
+    const conv = conversations.find((c) => c.id === id);
+    if (!conv) return;
+    setCurrentConvId(conv.id);
+    setMessages(conv.messages);
+    setQuery("");
+    setMetrics(null);
+    if (conv.selectedDocId !== null) {
+      selectDocument(conv.selectedDocId);
+    } else {
+      setSelectedId(null);
+      setSelectedDoc(null);
     }
   };
 
@@ -273,15 +344,24 @@ const SummarizePage: React.FC = () => {
       return;
     }
 
+    // Add user message to chat
+    const userMsgId = Date.now().toString();
+    const userMessage: ChatMessage = {
+      id: userMsgId,
+      type: "user",
+      content: query,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setQuery(""); // Clear input
     setLoadingAnswer(true);
-    setAnswer("");
     setDualInfo(null);
     setSearchResponse(null);
 
     const startTime = typeof performance !== "undefined" ? performance.now() : Date.now();
     try {
       const searchOptions: SearchOptions = {
-        query,
+        query: userMessage.content,
         answerLength,
         answerMode,
         pageRange,
@@ -299,7 +379,7 @@ const SummarizePage: React.FC = () => {
         );
       } catch (e) {
         // Fallback to regular search
-        res = await ApiService.search(query, 5, 0, selectedId || undefined);
+        res = await ApiService.search(userMessage.content, 5, 0, selectedId || undefined);
       }
 
       const endTime = typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -307,10 +387,9 @@ const SummarizePage: React.FC = () => {
 
       setSearchResponse(res);
 
-      // Build metrics: response time, accuracy estimate, collection details, selection info
+      // Build metrics
       const metricObj: any = { responseTimeMs };
 
-      // accuracy: prefer explicit field, otherwise derive from citation confidences
       if (typeof res.accuracy === "number") {
         metricObj.accuracy = res.accuracy;
       } else if (Array.isArray(res.citations) && res.citations.length) {
@@ -323,10 +402,10 @@ const SummarizePage: React.FC = () => {
         }
       }
 
-      // data collection details
       metricObj.sources = res.sources || [];
       metricObj.citations = res.citations || [];
 
+      let answer = "";
       if (res.dual_answers) {
         setDualInfo(res.dual_answers);
         metricObj.selected_source = res.dual_answers.selected_source;
@@ -335,17 +414,33 @@ const SummarizePage: React.FC = () => {
           res.dual_answers.selected_source === "groq"
             ? res.dual_answers.groq_answer
             : res.dual_answers.local_answer;
-        setAnswer(chosen || res.answer || "No answer returned");
+        answer = chosen || res.answer || "No answer returned";
       } else {
-        setAnswer(res.answer || "No answer returned");
+        answer = res.answer || "No answer returned";
       }
 
       setMetrics(metricObj);
+
+      // Add AI response to chat
+      const aiMsgId = (Date.now() + 1).toString();
+      const aiMessage: ChatMessage = {
+        id: aiMsgId,
+        type: "ai",
+        content: answer,
+        timestamp: new Date(),
+        sources: res.sources?.map((s: any) => s.doc_title || s.doc_id),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (e) {
       console.warn("Search failed", e);
-      setAnswer(
-        "Search failed. Please make sure your backend is running and try again.",
-      );
+      const errorMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: "ai",
+        content:
+          "Search failed. Please make sure your backend is running and try again.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setLoadingAnswer(false);
     }
@@ -353,13 +448,20 @@ const SummarizePage: React.FC = () => {
 
   // Download functions
   const downloadAsPDF = async () => {
-    if (!searchResponse || !answer) {
+    if (messages.length === 0) {
       alert("No answer to download. Please generate an answer first.");
       return;
     }
 
     try {
-      const content = generateDocumentContent("pdf");
+      // Find the last AI message
+      const lastAIMsg = [...messages].reverse().find((m) => m.type === "ai");
+      if (!lastAIMsg) {
+        alert("No AI response found.");
+        return;
+      }
+
+      const content = generateDocumentContent("pdf", lastAIMsg.content);
       const printWindow = window.open("", "_blank");
       if (printWindow) {
         printWindow.document.write(content);
@@ -373,13 +475,19 @@ const SummarizePage: React.FC = () => {
   };
 
   const downloadAsDOCX = async () => {
-    if (!searchResponse || !answer) {
+    if (messages.length === 0) {
       alert("No answer to download. Please generate an answer first.");
       return;
     }
 
     try {
-      const content = generateDocumentContent("plain");
+      const lastAIMsg = [...messages].reverse().find((m) => m.type === "ai");
+      if (!lastAIMsg) {
+        alert("No AI response found.");
+        return;
+      }
+
+      const content = generateDocumentContent("plain", lastAIMsg.content);
       const rtfContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}}
 \\f0\\fs24 ${content.replace(/\n/g, "\\par ")}}`;
 
@@ -414,19 +522,24 @@ const SummarizePage: React.FC = () => {
     }
   };
 
-  const generateDocumentContent = (format: "pdf" | "plain" = "pdf") => {
+  const generateDocumentContent = (format: "pdf" | "plain" = "pdf", answerText: string = "") => {
     const date = new Date().toLocaleDateString();
     const time = new Date().toLocaleTimeString();
+    // Find the last user query
+    const lastUserMsg = [...messages]
+      .reverse()
+      .find((m) => m.type === "user");
+    const queryText = lastUserMsg?.content || query || "Unknown query";
 
     if (format === "plain") {
       return `INTELLIDOC AI ANSWER REPORT
 Generated: ${date} ${time}
 
 QUESTION:
-${query}
+${queryText}
 
 ANSWER:
-${answer}
+${answerText}
 
 DOCUMENT:
 ${selectedDoc?.title || "Unknown"}
@@ -454,12 +567,12 @@ Generated by IntelliDoc AI Document Intelligence Platform`;
     );
     html.push(
       '<div class="question"><h2>Question</h2><p>' +
-        (query || "") +
+        (queryText || "") +
         "</p></div>",
     );
     html.push(
       '<div class="answer"><h2>AI Answer</h2><p>' +
-        (answer ? answer.replace(/\n/g, "<br>") : "") +
+        (answerText ? answerText.replace(/\n/g, "<br>") : "") +
         "</p></div>",
     );
     html.push(
@@ -499,405 +612,68 @@ Generated by IntelliDoc AI Document Intelligence Platform`;
   };
 
   return (
-    <div className="min-h-screen relative solar-bg">
-      <div className="fixed inset-0 z-0 overflow-hidden">
-        <div className="planet sun"></div>
-        <div className="planet mercury"></div>
-        <div className="planet venus"></div>
-        <div className="planet earth"></div>
-        <div className="planet mars"></div>
-        <div className="planet jupiter"></div>
-        <div className="planet saturn"></div>
-        <div className="planet neptune"></div>
-        <div className="orbit small"></div>
-        <div className="orbit medium"></div>
-        <div className="orbit large"></div>
-      </div>
-      <div className="relative z-20 py-12 px-4 sm:px-8 min-h-screen animate-fadein">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-2">
-            <h2 className="text-4xl font-extrabold tracking-tight text-white">
-              IntelliDoc AI - Upload & Ask Questions
-            </h2>
-            <div className="text-sm text-gray-300">
-              {files.length} documents •{" "}
-              {selectedDoc
-                ? `Selected: ${selectedDoc.title}`
-                : "No document selected"}
+    <div className="h-screen flex flex-col overflow-hidden bg-[#111111]">
+      <TopNav isDark={isDark} setIsDark={setIsDark} />
+
+      <div className="flex-1 flex overflow-hidden">
+        <Sidebar
+          isOpen={sidebarOpen}
+          setIsOpen={setSidebarOpen}
+          conversations={conversations}
+          currentConvId={currentConvId}
+          onSelectConversation={handleSelectConversation}
+          onNewChat={handleNewChat}
+          activeSection={activeSection}
+          setActiveSection={setActiveSection}
+        />
+
+        {/* Workspace */}
+        <div className="flex-1 flex overflow-hidden p-3 gap-3">
+          {/* Left panel: Upload + Documents */}
+          <div className="w-60 flex-shrink-0 flex flex-col gap-3">
+            <ImprovedUpload
+              dragActive={dragActive}
+              setDragActive={setDragActive}
+              uploading={uploading}
+              uploadProgress={uploadProgress}
+              onFileSelect={handleFile}
+              dragRef={dragRef}
+            />
+            <div className="flex-1 overflow-hidden">
+              <ImprovedDocumentList
+                documents={files}
+                selectedId={selectedId}
+                onSelectDocument={selectDocument}
+                onDeleteDocument={deleteDocument}
+                onRefresh={loadDocuments}
+                filter={filter}
+                setFilter={setFilter}
+                isLoading={uploading}
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="col-span-5 flex flex-col gap-6">
-              <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-xl">
-                <h3 className="font-semibold mb-3">Upload a document</h3>
-                {uploadSuccess && (
-                  <div className="mb-3 p-3 bg-green-100 border border-green-300 rounded-lg text-sm text-green-800 flex items-center gap-2">
-                    <span>{uploadSuccess}</span>
-                  </div>
-                )}
-                <div
-                  ref={dragRef}
-                  className={`border-2 transition-all duration-200 ${dragActive ? "border-purple-400 bg-purple-50" : "border-dashed border-gray-200 bg-white"} rounded-lg p-6 flex flex-col items-center justify-center gap-3`}
-                >
-                  <div className="text-sm text-gray-700">
-                    Drag & drop a file here, or
-                  </div>
-                  <label className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded shadow cursor-pointer hover:scale-105 transition-transform">
-                    <input
-                      type="file"
-                      onChange={onFileChange}
-                      className="hidden"
-                    />
-                    <span className="text-sm font-medium">Choose file</span>
-                  </label>
-                </div>
-                <div className="mt-4">
-                  <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="h-3 bg-gradient-to-r from-purple-500 to-pink-500 transition-all"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-xl flex flex-col">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold">Your documents</h3>
-                  <div className="flex items-center gap-2">
-                    <div className="text-xs text-gray-400">
-                      Showing {filteredFiles.length} of {files.length}
-                    </div>
-                    <button
-                      onClick={loadDocuments}
-                      title="Refresh documents"
-                      className="p-1 hover:bg-gray-100 rounded transition-colors text-gray-600 hover:text-gray-900"
-                    >
-                      <FiRefreshCw size={18} />
-                    </button>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <input
-                    placeholder="Search documents"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    className="w-full border rounded px-3 py-2 text-sm"
-                  />
-                </div>
-                <div
-                  className="flex-1 overflow-y-auto space-y-3"
-                  style={{ maxHeight: "340px" }}
-                >
-                  {filteredFiles.length === 0 && (
-                    <div className="text-sm text-gray-500">
-                      No documents yet.
-                    </div>
-                  )}
-                  {filteredFiles.map((d: any) => (
-                    <div key={d.id} className={`w-full p-0`}>
-                      <div
-                        onClick={() => selectDocument(d.id)}
-                        className={`w-full text-left p-3 rounded-md border flex items-center justify-between cursor-pointer ${selectedId === d.id ? "border-purple-500 bg-purple-50" : "hover:bg-gray-50"}`}
-                      >
-                        <div>
-                          <div className="font-medium text-sm">
-                            {d.title || `Document ${d.id}`}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {d.created_at
-                              ? new Date(d.created_at).toLocaleString()
-                              : ""}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            title="Delete"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteDocument(d.id);
-                            }}
-                            className="text-xs px-2 py-1 border rounded text-red-600 hover:bg-red-50"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="col-span-7 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-xl flex flex-col">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900">
-                  Ask IntelliDoc
-                </h3>
-                <div className="text-sm text-gray-600">
-                  Selected:{" "}
-                  {selectedDoc
-                    ? selectedDoc.title || `Doc ${selectedDoc.id}`
-                    : "None"}
-                </div>
-              </div>
-
-              {/* Advanced Options Toggle */}
-              <button
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="mb-3 flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
-              >
-                {showAdvanced ? (
-                  <FiChevronUp size={16} />
-                ) : (
-                  <FiChevronDown size={16} />
-                )}
-                {showAdvanced ? "Hide" : "Show"} Answer Options
-              </button>
-
-              {/* Advanced Options */}
-              {showAdvanced && (
-                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Answer Length
-                      </label>
-                      <select
-                        value={answerLength}
-                        onChange={(e) =>
-                          setAnswerLength(
-                            e.target.value as "short" | "balanced" | "detailed",
-                          )
-                        }
-                        className="w-full border rounded px-2 py-1 text-sm"
-                      >
-                        <option value="short">Short</option>
-                        <option value="balanced">Balanced</option>
-                        <option value="detailed">Detailed</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Answer Mode
-                      </label>
-                      <select
-                        value={answerMode}
-                        onChange={(e) =>
-                          setAnswerMode(
-                            e.target.value as
-                              | "summary"
-                              | "qa"
-                              | "keypoints"
-                              | "pageexplanation"
-                              | "actionitems",
-                          )
-                        }
-                        className="w-full border rounded px-2 py-1 text-sm"
-                      >
-                        <option value="summary">Summary</option>
-                        <option value="qa">Q&A</option>
-                        <option value="keypoints">Key Points</option>
-                        <option value="pageexplanation">
-                          Page Explanation
-                        </option>
-                        <option value="actionitems">Action Items</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Page Range
-                    </label>
-                    <div className="flex gap-2">
-                      <label className="flex items-center gap-1 text-sm">
-                        <input
-                          type="radio"
-                          value="entire"
-                          checked={pageRange === "entire"}
-                          onChange={(e) => setPageRange(e.target.value as any)}
-                        />
-                        All
-                      </label>
-                      <label className="flex items-center gap-1 text-sm">
-                        <input
-                          type="radio"
-                          value="specific"
-                          checked={pageRange === "specific"}
-                          onChange={(e) => setPageRange(e.target.value as any)}
-                        />
-                        Specific
-                      </label>
-                      <label className="flex items-center gap-1 text-sm">
-                        <input
-                          type="radio"
-                          value="range"
-                          checked={pageRange === "range"}
-                          onChange={(e) => setPageRange(e.target.value as any)}
-                        />
-                        Range
-                      </label>
-                    </div>
-                    {pageRange === "specific" && (
-                      <input
-                        type="number"
-                        min="1"
-                        value={specificPage}
-                        onChange={(e) =>
-                          setSpecificPage(Math.max(1, parseInt(e.target.value)))
-                        }
-                        placeholder="Page #"
-                        className="w-full border rounded px-2 py-1 text-sm mt-2"
-                      />
-                    )}
-                    {pageRange === "range" && (
-                      <div className="flex gap-2 mt-2">
-                        <input
-                          type="number"
-                          min="1"
-                          value={startPage}
-                          onChange={(e) =>
-                            setStartPage(Math.max(1, parseInt(e.target.value)))
-                          }
-                          placeholder="Start"
-                          className="w-1/2 border rounded px-2 py-1 text-sm"
-                        />
-                        <input
-                          type="number"
-                          min="1"
-                          value={endPage}
-                          onChange={(e) =>
-                            setEndPage(Math.max(1, parseInt(e.target.value)))
-                          }
-                          placeholder="End"
-                          className="w-1/2 border rounded px-2 py-1 text-sm"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <textarea
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                rows={4}
-                className="w-full border rounded-lg p-3 mb-3 text-sm"
-                placeholder="Ask a question about your document..."
-              />
-
-              <div className="flex gap-2 mb-3">
-                <button
-                  onClick={runQuery}
-                  disabled={loadingAnswer}
-                  className="px-6 py-3 bg-emerald-600 text-white rounded-lg"
-                >
-                  {loadingAnswer ? "Generating..." : "Generate Answer"}
-                </button>
-                <button
-                  onClick={() => {
-                    setQuery("");
-                    setAnswer("");
-                    setSearchResponse(null);
-                  }}
-                  className="px-4 py-2 border rounded-lg"
-                >
-                  Reset
-                </button>
-              </div>
-
-              <div className="mt-2 flex-1">
-                <div className="font-medium mb-2">AI Answer</div>
-                <div className="min-h-[320px] p-6 border rounded bg-gray-50 text-sm overflow-auto whitespace-pre-wrap">
-                  {loadingAnswer ? (
-                    <Spinner />
-                  ) : (
-                    answer || (
-                      <span className="text-gray-400">No answer yet.</span>
-                    )
-                  )}
-                </div>
-              </div>
-
-              {metrics && (
-                <div className="mt-4 p-4 bg-white border rounded-lg text-sm">
-                  <div className="font-semibold mb-2">Answer Metrics</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-700">
-                    <div>
-                      <strong>Response time:</strong> {metrics.responseTimeMs} ms
-                    </div>
-                    <div>
-                      {metrics.accuracy != null && (
-                        <><strong>Accuracy:</strong> {metrics.accuracy}</>
-                      )}
-                    </div>
-                    <div>
-                      <strong>Selected answer:</strong> {metrics.selected_source || "n/a"}
-                    </div>
-                    <div>
-                      <strong>Selection reason:</strong> {metrics.selection_reason || "n/a"}
-                    </div>
-                  </div>
-
-                  {metrics.sources && metrics.sources.length > 0 && (
-                    <div className="mt-3 text-xs">
-                      <div className="font-medium">Sources:</div>
-                      <ul className="list-disc list-inside">
-                        {metrics.sources.map((s: any, idx: number) => (
-                          <li key={idx}>{s.doc_title || s.doc_id}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {metrics.citations && metrics.citations.length > 0 && (
-                    <div className="mt-3 text-xs">
-                      <div className="font-medium">Citations (sample):</div>
-                      <ul className="list-disc list-inside">
-                        {metrics.citations.slice(0, 5).map((c: any, idx: number) => (
-                          <li key={idx}>
-                            {(c.doc_title || c.doc_id) + (c.quote ? `: "${String(c.quote).slice(0,120)}"` : "")}
-                            {c.confidence ? ` (conf ${c.confidence})` : ""}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Export Buttons */}
-              {answer && (
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() => copyToClipboard(answer)}
-                    title="Copy to clipboard"
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                  >
-                    <FiCopy size={16} />
-                    Copy
-                  </button>
-                  <button
-                    onClick={downloadAsPDF}
-                    title="Download as PDF"
-                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-                  >
-                    <FiDownload size={16} />
-                    PDF
-                  </button>
-                  <button
-                    onClick={downloadAsDOCX}
-                    title="Download as DOCX"
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-                  >
-                    <FiDownload size={16} />
-                    DOCX
-                  </button>
-                </div>
-              )}
-            </div>
+          {/* Chat workspace */}
+          <div className="flex-1 overflow-hidden">
+            <ChatAIWorkspace
+              messages={messages}
+              query={query}
+              setQuery={setQuery}
+              onSendMessage={runQuery}
+              isLoading={loadingAnswer}
+              metrics={metrics}
+              dualInfo={dualInfo}
+              selectedDoc={selectedDoc}
+              onCopy={(text) => copyToClipboard(text)}
+              onDownloadPDF={downloadAsPDF}
+              onDownloadDOCX={downloadAsDOCX}
+              showAdvanced={showAdvanced}
+              setShowAdvanced={setShowAdvanced}
+              answerLength={answerLength}
+              setAnswerLength={setAnswerLength}
+              answerMode={answerMode}
+              setAnswerMode={setAnswerMode}
+            />
           </div>
         </div>
       </div>
